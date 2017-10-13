@@ -10,35 +10,81 @@ __all__ = [
 ]
 
 class Normal(Distribution):
-    "The univariate normal distribution, parameterized by mean and standard deviation."
-    def __init__(self, mean, std):
-        self._mean = mean
-        self._std = std
+    R"""The univariate normal distribution.
+
+    .. math::
+       f(x \mid \mu, \sigma) =
+           \sqrt{\frac{1}{2\pi \sigma^2}}
+           \exp \left[ 
+                    -\frac{1}{2} 
+                    \frac{(x-\mu)^2}
+                         {\sigma^2}
+                \right]
+
+    ========  ==========================================
+    Support   :math:`x \in \mathbb{R}`
+    Mean      :math:`\mu`
+    Variance  :math:`\sigma^2` or :math:`\frac{1}{\tau}`
+    ========  ==========================================
+
+    Normal distribution can be parameterized either in terms of standard
+    deviation or precision. The link between the two parametrizations is
+    given by :math:`\tau = 1 / \sigma^2`
+
+    Parameters:
+        mu(:obj:`Variable`): Mean.
+        sigma(:obj:`Variable`, optional): Standard deviation (sigma > 0).
+        tau(:obj:`Variable`, optional): Precision (tau > 0).
+
+    Attributes:
+        mean(:obj:`Variable`): Mean (mu).
+        mode(:obj:`Variable`): Mode (mu).
+        variance(:obj:`Variable`): Variance (equal to sigma**2 or 1/tau)
+
+    Note:
+        When neither sigma nor tau is specified, the default is sigma = tau = 1.0
+    """
+    def __init__(self, mu, sigma=None, tau=None):
+        if not sigma is None and not tau is None:
+            raise ValueError("Either sigma or tau may be specified, not both.")
+        if sigma is None and tau is None:
+            sigma = 1.0
+            tau = 1.0
+        if tau is None:
+            tau = sigma**-2
+        if sigma is None:
+            sigma = tau**-0.5
+        self._mu = mu
+        self._sigma = sigma
+        self._tau = tau
         # TODO: is there a cleaner way to do broadcast sizes?
-        super(Normal, self).__init__((mean + std).size(),
-                                     mean.data.type(),
+        super(Normal, self).__init__((mu + sigma).size(),
+                                     mu.data.type(),
                                      GradientType.REPARAMETERIZED)
+    @property
+    def mu(self):
+        return self._mu
+    
+    @property
+    def sigma(self):
+        return self._sigma
 
     @property
     def mean(self):
-        return self._mean
-    
+        return self._mu
+
     @property
     def mode(self):
-        return self._mean
-    
-    @property
-    def std(self):
-        return self._std
-    
+        return self._mu
+   
     @property
     def variance(self):
-        return self._std**2
+        return self._sigma**2
 
     def sample(self):
         eps = Variable(torch.randn(self._size)).type(self._type)
-        return self._mean + self._std * eps
+        return self._mu + self._sigma * eps
 
     def log_prob(self, value):
-        return -0.5 * (torch.log(2 * math.pi * self._std**2)
-                       + ((value - self._mean) / self._std)**2)
+        return -0.5 * (torch.log(2 * math.pi * self._sigma**2)
+                       + ((value - self._mu) / self._sigma)**2)

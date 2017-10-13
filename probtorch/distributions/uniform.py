@@ -10,7 +10,30 @@ __all__ = [
 ]
 
 class Uniform(Distribution):
-    "The uniform distribution, parameterized by lower and upper."
+    R"""
+    Continuous uniform distribution
+    .. math::
+       f(x \mid lower, upper) = \frac{1}{upper-lower}
+    
+    ========  =====================================
+    Support   :math:`x \in [lower, upper]`
+    Mean      :math:`\dfrac{lower + upper}{2}`
+    Variance  :math:`\dfrac{(upper - lower)^2}{12}`
+    ========  =====================================
+    
+    Parameters
+        lower(:obj:`Variable`) : Lower limit.
+        upper(:obj:`Variable`) : Upper limit (upper > lower).
+    
+    Attributes:
+        mean(:obj:`Variable`): Mean.
+        std(:obj:`Variable`): Standard deviation.
+        variance(:obj:`Variable`): Variance.
+        
+    Note:
+        When unspecified, lower=0.0 and upper=1.0.
+    """
+    
     def __init__(self, lower = 0.0, upper = 1.0):
         #TODO: needs assert lower<upper
         self._lower = lower

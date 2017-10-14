@@ -2,3 +2,4 @@
 
 from .concrete import *
 from .normal import *
+from .uniform import *

@@ -3,6 +3,7 @@ import torch
 from torch.autograd import Variable
 from probtorch.distributions.distribution import *
 from probtorch.util import log_sum_exp, log_softmax, softmax, expanded_size
+from numbers import Number
 
 __all__ = [
     "Concrete"
@@ -12,16 +13,35 @@ __all__ = [
 EPS = 1e-12
 
 class Concrete(Distribution):
-    "The concrete distribution (also known as the Gumbel-softmax distribution)"
+    """The Gumbel-Softmax relaxation of the discrete distribution, as described
+    in [1] and [2]. 
 
+    Arguments:
+        log_weights(:obj:`Variable`): Unnormalized log probabilities.
+        
+        temperature(:obj:`Variable`): Temperature parameter. 
+        size(:obj:`torch.Size`, optional): Sample size.
+        
+        log_pdf(bool): Controls whether probabilities are calculated according \
+        to the probability density function of the relaxation, or according to \
+        the probability mass function. Defaults to False. 
+
+    References:
+        [1] Chris J Maddison, Andriy Mnih, Yee Whye Teh. The concrete distribution: 
+        A continuous relaxation of discrete random variables. ICLR 2017.
+        
+        [2] Eric Jang, Shixiang Gu, Ben Poole. Categorical Reparameterization with 
+        Gumbel-Softmax. ICLR 2017.
+    """
     def __init__(self, log_weights, temperature, size=None, log_pdf=False):
         self._log_pdf = log_pdf
-        self._temperature = temperature
+        if isinstance(temperature, Number):
+            temperature = Variable(torch.Tensor([temperature]))
+        self._temperature = temperature 
         if not size is None:
             size = expanded_size(size, log_weights.size())
-            self._log_weights = log_weights.expand(*size)
-        else:
-            self._log_weights = log_weights
+            log_weights = log_weights.expand(*size)
+        self._log_weights = log_weights
         self._log_probs = log_softmax(self._log_weights)
         # TODO: we should just be able to call log_weights.type()
         # but apparently the variable API does not expose this 

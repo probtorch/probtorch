@@ -9,8 +9,8 @@ class Stochastic(object):
     density or mass.
 
     Attributes:
-        value(:class:Variable): The value of the variable.
-        log_prob(:class:Variable): The log probability mass or density.
+        value(:obj:Variable): The value of the variable.
+        log_prob(:obj:Variable): The log probability mass or density.
     """
     __metaclass__ = abc.ABCMeta
 
@@ -27,8 +27,8 @@ class RandomVariable(Stochastic):
     and log probability.
 
     Parameters:
-        dist(:class:`Distribution`): The distribution of the variable.
-        value(:class:`Variable`): The value of the variable.
+        dist(:obj:`Distribution`): The distribution of the variable.
+        value(:obj:`Variable`): The value of the variable.
         observed(bool): Indicates whether the value was sampled or observed.
     """
     def __init__(self, dist, value, observed=False):
@@ -66,7 +66,7 @@ class Factor(Stochastic):
     only provides a log_prob attribute. The value attribute is `None`.
 
     Parameters:
-        log_prob(:class:`Variable`): The log-probability.
+        log_prob(:obj:`Variable`): The log-probability.
     """
     def __init__(self, log_prob):
         self._value = None
@@ -88,9 +88,9 @@ class Loss(Stochastic):
     `-loss(value, target)`.
 
     Parameters:
-        loss(:class:`Function`): A PyTorch loss function.
-        value(:class:`Variable`): The value.
-        target(:class:`Variable`): The target value.
+        loss(function): A PyTorch loss function.
+        value(:obj:`Variable`): The value.
+        target(:obj:`Variable`): The target value.
     """
     def __init__(self, loss, value, target):
         self._loss = loss

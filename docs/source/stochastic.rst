@@ -11,20 +11,26 @@ Stochastic Variables
 :hidden:`RandomVariable`
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. class:: probtorch.stochastic.RandomVariable
-
+.. autoclass:: probtorch.stochastic.RandomVariable
+    :members:
+    :inherited-members:
 
 :hidden:`Factor`
 ~~~~~~~~~~~~~~~~
 
-.. class:: probtorch.stochastic.Factor
+.. autoclass:: probtorch.stochastic.Factor
+    :members:
+    :inherited-members:
 
 :hidden:`Loss`
 ~~~~~~~~~~~~~~
 
-.. autofunction:: probtorch.stochastic.Loss
+.. autoclass:: probtorch.stochastic.Loss
+    :members:
+    :inherited-members:
 
 :hidden:`Trace`
 ~~~~~~~~~~~~~~~
 
-.. autofunction:: probtorch.stochastic.Trace
+.. autoclass:: probtorch.stochastic.Trace
+    :members:

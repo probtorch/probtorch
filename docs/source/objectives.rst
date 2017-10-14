@@ -13,7 +13,7 @@ Objectives
 
 .. autofunction:: probtorch.objectives.montecarlo.elbo
 
-:hidden:`variational`
+:hidden:`importance`
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: probtorch.objectives.variational.elbo
+.. autofunction:: probtorch.objectives.importance.elbo

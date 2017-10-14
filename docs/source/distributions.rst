@@ -8,6 +8,10 @@ Distributions
 .. automodule:: probtorch.distributions
 .. currentmodule:: probtorch.distributions
 
+:hidden:`Uniform`
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: probtorch.distributions.Uniform
 
 :hidden:`Normal`
 ~~~~~~~~~~~~~~~~
@@ -20,7 +24,3 @@ Distributions
 .. autoclass:: probtorch.distributions.Concrete
 
 
-:hidden:`Uniform`
-~~~~~~~~~~~~~~~~~
-
-.. autoclass:: probtorch.distributions.Uniform

@@ -33,6 +33,7 @@ class Normal(Distribution):
         mu(:obj:`Variable`): Mean.
         sigma(:obj:`Variable`, optional): Standard deviation (sigma > 0).
         tau(:obj:`Variable`, optional): Precision (tau > 0).
+        size(tuple, optional): Sample size. 
 
     Attributes:
         mean(:obj:`Variable`): Mean (mu).

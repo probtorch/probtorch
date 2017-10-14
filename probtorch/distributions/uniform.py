@@ -26,7 +26,8 @@ class Uniform(Distribution):
     Parameters:
         lower(:obj:`Variable`) : Lower limit (default: 0.0).
         upper(:obj:`Variable`) : Upper limit (upper > lower, default: 1.0).
-    
+        size(tuple, optional): Sample size.
+            
     Attributes:
         mean(:obj:`Variable`): Mean.
         std(:obj:`Variable`): Standard deviation.

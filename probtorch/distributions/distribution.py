@@ -9,7 +9,6 @@ __all__ = [
 
 class GradientType(object):
     """Enumerates gradient implementations for distributions."""
-
     def __init__(self, name):
         self.name = name
 
@@ -24,7 +23,6 @@ GradientType.REINFORCE = GradientType("reinforce")
 GradientType.NONE = GradientType("none")
 
 class Distribution(object):
-    
     LOG_0=-12.0
     
     def __init__(self, size, data_type, gradient_type):

@@ -4,6 +4,7 @@ import torch
 from torch.autograd import Variable
 import math
 from probtorch.distributions.distribution import *
+from probtorch.util import broadcast_size, expanded_size
 
 __all__ = [
     "Uniform"
@@ -32,12 +33,13 @@ class Uniform(Distribution):
         variance(:obj:`Variable`): Variance.
     """
     
-    def __init__(self, lower = 0.0, upper = 1.0):
+    def __init__(self, lower=0.0, upper=1.0, size=None):
         #TODO: needs assert lower<upper
         self._lower = lower
         self._upper = upper
         # TODO: is there a cleaner way to do broadcast sizes?
-        super(Uniform, self).__init__((lower+upper).size(),
+        super(Uniform, self).__init__(expanded_size(size, 
+                                        broadcast_size(lower, upper)),
                                      lower.data.type(),
                                      GradientType.REPARAMETERIZED)
                                      

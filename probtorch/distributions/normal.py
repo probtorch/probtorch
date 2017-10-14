@@ -4,6 +4,8 @@ import torch
 from torch.autograd import Variable
 import math
 from probtorch.distributions.distribution import *
+from probtorch.util import broadcast_size, expanded_size
+from numbers import Number
 
 __all__ = [
     "Normal"
@@ -15,11 +17,7 @@ class Normal(Distribution):
     .. math::
        f(x \mid \mu, \sigma) =
            \sqrt{\frac{1}{2\pi \sigma^2}}
-           \exp \left[ 
-                    -\frac{1}{2} 
-                    \frac{(x-\mu)^2}
-                         {\sigma^2}
-                \right]
+           \exp \left[ -\frac{1}{2} \frac{(x-\mu)^2}{\sigma^2} \right]
 
     ========  ==========================================
     Support   :math:`x \in \mathbb{R}`
@@ -42,9 +40,10 @@ class Normal(Distribution):
         variance(:obj:`Variable`): Variance (equal to sigma**2 or 1/tau)
 
     Note:
-        When neither sigma nor tau is specified, the default is sigma = tau = 1.0
+        Only one of sigma or tau can be specified. When neither is specified, 
+        the default is sigma = tau = 1.0
     """
-    def __init__(self, mu, sigma=None, tau=None):
+    def __init__(self, mu, sigma=None, tau=None, size=None):
         if not sigma is None and not tau is None:
             raise ValueError("Either sigma or tau may be specified, not both.")
         if sigma is None and tau is None:
@@ -54,11 +53,12 @@ class Normal(Distribution):
             tau = sigma**-2
         if sigma is None:
             sigma = tau**-0.5
-        self._mu = mu
-        self._sigma = sigma
-        self._tau = tau
+        self._mu = Variable(torch.Tensor([mu])) if isinstance(mu, Number) else mu
+        self._sigma = Variable(torch.Tensor([sigma])) if isinstance(sigma, Number) else sigma
+        self._tau = Variable(torch.Tensor([tau])) if isinstance(tau, Number) else tau
         # TODO: is there a cleaner way to do broadcast sizes?
-        super(Normal, self).__init__((mu + sigma).size(),
+        super(Normal, self).__init__(expanded_size(size, 
+                                        broadcast_size(mu, sigma)),
                                      mu.data.type(),
                                      GradientType.REPARAMETERIZED)
     @property

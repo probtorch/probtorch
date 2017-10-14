@@ -2,7 +2,7 @@
 import torch
 from torch.autograd import Variable
 from probtorch.distributions.distribution import *
-from probtorch.util import log_sum_exp, log_softmax, softmax
+from probtorch.util import log_sum_exp, log_softmax, softmax, expanded_size
 
 __all__ = [
     "Concrete"
@@ -14,16 +14,20 @@ EPS = 1e-12
 class Concrete(Distribution):
     "The concrete distribution (also known as the Gumbel-softmax distribution)"
 
-    def __init__(self, log_weights, temperature, log_pdf=False):
+    def __init__(self, log_weights, temperature, size=None, log_pdf=False):
         self._log_pdf = log_pdf
-        self._log_weights = log_weights 
-        self._log_probs = log_softmax(log_weights)
         self._temperature = temperature
+        if not size is None:
+            size = expanded_size(size, log_weights.size())
+            self._log_weights = log_weights.expand(*size)
+        else:
+            self._log_weights = log_weights
+        self._log_probs = log_softmax(self._log_weights)
         # TODO: we should just be able to call log_weights.type()
         # but apparently the variable API does not expose this 
         # call syntax.
-        super(Concrete, self).__init__(log_weights.size(),
-                                       log_weights.data.type(),
+        super(Concrete, self).__init__(self._log_weights.size(),
+                                       self._log_weights.data.type(),
                                        GradientType.REPARAMETERIZED)
 
     @property
@@ -47,6 +51,8 @@ class Concrete(Distribution):
     def log_pmf(self, value):
         if value.data.type() != 'torch.LongTensor':
             _, value = value.max(-1)
+        if value.dim() < len(self.size[:-1]):
+            value = value.expand(*self.size[:-1])
         # score according to marginal probabilities
         return self._log_probs.gather(-1, value.unsqueeze(-1)).squeeze(-1)
 

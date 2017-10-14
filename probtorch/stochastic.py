@@ -33,9 +33,12 @@ class RandomVariable(Stochastic):
     """
     def __init__(self, dist, value, observed=False):
         self._dist = dist
-        self._value = value
         self._log_prob = None
         self._observed = observed
+        if dist.size == value.size():
+            self._value = value
+        else:
+            self._value = value.expand(*dist.size)
 
     @property
     def dist(self):

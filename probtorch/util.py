@@ -2,13 +2,48 @@
 import torch
 from torch.nn import functional as F
 from functools import wraps
+from numbers import Number
 import math
 
-__all__ = ['batch_sum', 
+__all__ = ['broadcast_size',
+           'expanded_size',
+           'batch_sum', 
            'partial_sum', 
            'log_sum_exp', 
            'log_softmax', 
            'softmax']
+
+def broadcast_size(a, b):
+    """Returns the broadcasted size given two Tensors or Variables"""
+    a_size = torch.Size((1,)) if isinstance(a, Number) else a.size()
+    b_size = torch.Size((1,)) if isinstance(b, Number) else b.size()
+    # order a and b by number of dimensions
+    if len(b_size) > len(a_size):
+        a_size, b_size = b_size, a_size
+    # pad b with 1's if needed
+    b_size = torch.Size((1,) * (len(a_size) - len(b_size))) + b_size
+    c_size = a_size[0:0]
+    for a, b in zip(a_size, b_size):
+        if a == 1:
+            c_size += (b,)
+        elif b == 1:
+            c_size += (a,)
+        else:
+            if a != b:
+                raise ValueError("Broadcasting dimensions",
+                                 "must be either equal or 1.")
+            c_size += (a,)
+    return c_size
+
+def expanded_size(expand_size, orig_size):
+    """Returns the expanded size given two sizes"""
+    # strip leading 1s from original size
+    if expand_size is None:
+        expand_size = torch.Size()
+    if orig_size == (1,):
+        return expand_size
+    else:
+        return expand_size + orig_size
 
 def batch_sum(v, sample_dim=None, batch_dim=None):
     keepdims = []

@@ -54,10 +54,14 @@ class Normal(Distribution):
             tau = sigma**-2
         if sigma is None:
             sigma = tau**-0.5
-        self._mu = Variable(torch.Tensor([mu])) if isinstance(mu, Number) else mu
-        self._sigma = Variable(torch.Tensor([sigma])) if isinstance(sigma, Number) else sigma
+        if isinstance(mu, Number):
+            mu = Variable(torch.Tensor([mu]))
+        if isinstance(sigma, Number):
+            sigma = Variable(torch.Tensor([sigma]))
+        self._mu = mu
+        self._sigma = sigma
         self._tau = Variable(torch.Tensor([tau])) if isinstance(tau, Number) else tau
-        # TODO: is there a cleaner way to do broadcast sizes?
+        assert(broadcast_size(mu, sigma) == (mu + sigma).size())
         super(Normal, self).__init__(expanded_size(size, 
                                         broadcast_size(mu, sigma)),
                                      mu.data.type(),

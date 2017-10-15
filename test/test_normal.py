@@ -24,10 +24,8 @@ class TestNormal(TestCase):
         # just to make sure things are ok until we write a better sample test
         mu = Variable(torch.randn(1))
         sigma = torch.exp(Variable(torch.randn(1)))
-        dist = Normal(mu, sigma)
-        samples=torch.zeros(SAMPLE_COUNT)
-        for n in range(SAMPLE_COUNT):
-            samples[n] = dist.sample().data[0]
+        dist = Normal(mu, sigma, size=(SAMPLE_COUNT,))
+        samples = dist.sample().data
         _,p = kstest(samples.numpy(), 
                      'norm', (mu.data.numpy(), sigma.data.numpy()))
         assert p > 0.05

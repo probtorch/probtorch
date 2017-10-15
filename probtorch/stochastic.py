@@ -227,7 +227,7 @@ class Trace(MutableMapping):
     # TODO: we need to automate this, and add docstring magic
     def normal(self, mu, sigma=None, tau=None, name=None, value=None, **kwargs):
         """Creates a new Normal-distributed RandomVariable node."""
-        return self.variable(distributions.Normal, mu, sigma=None, tau=None, 
+        return self.variable(distributions.Normal, mu, sigma=sigma, tau=tau, 
                              name=name, value=value, **kwargs)
 
     def concrete(self, log_weights, temp, name=None, value=None, **kwargs):
@@ -237,5 +237,5 @@ class Trace(MutableMapping):
 
     def uniform(self, lower=0.0, upper=1.0, name=None, value=None, **kwargs):
         """Creates a new Uniform-distributed RandomVariable node."""
-        return self.variable(distributions.Uniform, lower, upper, 
+        return self.variable(distributions.Uniform, lower=lower, upper=upper, 
                              name=name, value=value, **kwargs)

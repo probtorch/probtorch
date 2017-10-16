@@ -3,3 +3,4 @@
 from .concrete import *
 from .normal import *
 from .uniform import *
+from .exponential import *

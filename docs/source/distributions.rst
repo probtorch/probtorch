@@ -23,4 +23,8 @@ Distributions
 
 .. autoclass:: probtorch.distributions.Concrete
 
+:hidden:`Exponential`
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: probtorch.distributions.Exponential
 

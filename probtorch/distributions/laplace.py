@@ -66,7 +66,6 @@ class Laplace(Distribution):
         return 2*self._b**2
 
     def sample(self):
-        # uniform = Variable(torch.rand(self._size)).type(self._type) - .5
         uniform = Variable(torch.Tensor(self._size).uniform_(-0.5, 0.5)).type(self._type)
         #if U is uniform in (-.5,.5], loc-scale*sgn(U)*ln(1-2*abs(U)) is laplace
         return self._mu - self._b * torch.sign(uniform) * torch.log(1 - 2 * torch.abs(uniform))
@@ -75,8 +74,4 @@ class Laplace(Distribution):
         first_term = -(torch.log(2.*self._b))
         second_term = -(torch.abs(value-self._mu) / self._b)
         return first_term + second_term
-
-    # def log_prob(self, value):
-    #     return -0.5 * (torch.log(2 * math.pi * self._b ** 2)
-    #                    + ((value - self._mu) / self._b) ** 2)
 

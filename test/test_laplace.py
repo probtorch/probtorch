@@ -1,4 +1,4 @@
-from scipy.stats import norm, kstest
+from scipy.stats import laplace, kstest
 from probtorch.distributions.laplace import Laplace
 import torch
 from common import TestCase, run_tests, SAMPLE_COUNT
@@ -14,7 +14,7 @@ class TestLaplace(TestCase):
 
         # test log probability
         res1 = dist.log_prob(value).data
-        res2 = norm.logpdf(value.data.numpy(), 
+        res2 = laplace.logpdf(value.data.numpy(),
                            mu.data.numpy(), 
                            b.data.numpy())
         self.assertEqual(res1, res2)

@@ -24,7 +24,12 @@ Distributions
 .. autoclass:: probtorch.distributions.Concrete
 
 :hidden:`Exponential`
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: probtorch.distributions.Exponential
+
+:hidden:`Laplace`
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: probtorch.distributions.Laplace
 

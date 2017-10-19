@@ -2,7 +2,6 @@
 
 import torch
 from torch.autograd import Variable
-import math
 from probtorch.distributions.distribution import *
 from probtorch.util import broadcast_size, expanded_size
 from numbers import Number
@@ -42,9 +41,9 @@ class Laplace(Distribution):
 
         assert(broadcast_size(mu, b) == (mu + b).size())
         super(Laplace, self).__init__(expanded_size(size, 
-                                        broadcast_size(mu, b)),
-                                     mu.data.type(),
-                                     GradientType.REPARAMETERIZED)
+                                      broadcast_size(mu, b)),
+                                      mu.data.type(),
+                                      GradientType.REPARAMETERIZED)
     @property
     def mu(self):
         return self._mu
@@ -63,15 +62,18 @@ class Laplace(Distribution):
    
     @property
     def variance(self):
-        return 2*self._b**2
+        return 2.0 * self._b**2
 
     def sample(self):
-        uniform = Variable(torch.Tensor(self._size).type(self._type).uniform_(-0.5, 0.5))
-        #if U is uniform in (-.5,.5], loc-scale*sgn(U)*ln(1-2*abs(U)) is laplace
-        return self._mu - self._b * torch.sign(uniform) * torch.log(1 - 2 * torch.abs(uniform))
+        u = torch.Tensor(self._size).type(self._type).uniform_(-0.5, 0.5)
+        uniform = Variable(u)
+        # if U is uniform in (-.5,.5], then 
+        # mu - b * sign(U) * log(1 - 2 * abs(U)) is Laplace
+        return (self._mu - self._b * 
+                            torch.sign(uniform) * 
+                            torch.log(1.0 - 2.0 * torch.abs(uniform)))
 
     def log_prob(self, value):
-        first_term = -(torch.log(2.*self._b))
-        second_term = -(torch.abs(value-self._mu) / self._b)
-        return first_term + second_term
-
+        log_normalizer = (torch.log(2.0 * self._b))
+        log_weight = -(torch.abs(value - self._mu) / self._b)
+        return log_weight - log_normalizer

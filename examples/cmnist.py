@@ -20,11 +20,16 @@ NUM_EPOCHS = 10
 LABEL_FRACTION = 0.5
 LEARNING_RATE = 1e-3
 BETA1 = 0.90
+CUDA = torch.cuda.is_available()
 
 EPS = 1e-9
+SEED = 12345
 
 DATA_PATH = '../data'
 WEIGHTS_PATH = '../weights'
+
+if CUDA and not SEED is None:
+    torch.cuda.manual_seed(SEED)
 
 class Encoder(nn.Module):
     def __init__(self, num_pixels=NUM_PIXELS, 
@@ -124,15 +129,19 @@ def train(data, enc, dec, optimizer,
     for b, (images, labels) in enumerate(data):
         if images.size()[0] == BATCH_SIZE:
             N += BATCH_SIZE
+            if CUDA:
+                images.cuda()
             images = Variable(images).view(-1, NUM_PIXELS)
-            labels_onehot = torch.zeros(BATCH_SIZE, NUM_DIGITS)
-            labels_onehot.scatter_(1, labels.unsqueeze(1), 1)
-            labels_onehot = Variable(torch.clamp(labels_onehot, EPS, 1-EPS))
             optimizer.zero_grad()
             if b not in label_mask:
                 label_mask[b] = (random() < label_fraction)
             if label_mask[b]:
-                q = enc(images, labels_onehot, num_samples=NUM_SAMPLES)
+                labels_onehot = torch.zeros(BATCH_SIZE, NUM_DIGITS)
+                labels_onehot.scatter_(1, labels.unsqueeze(1), 1)
+                labels_onehot = labels_onehot.clamp(labels_onehot, EPS, 1-EPS)
+                if CUDA:
+                    labels_onehot.cuda()
+                q = enc(images, Variable(labels_onehot), num_samples=NUM_SAMPLES)
             else:
                 q = enc(images, num_samples=NUM_SAMPLES)
             p = dec(images, q, num_samples=NUM_SAMPLES)
@@ -190,6 +199,9 @@ if __name__ == '__main__':
                     shuffle=True) 
     enc = Encoder()
     dec = Decoder()
+    if CUDA:
+        enc.cuda()
+        dec.cuda()
     optimizer =  torch.optim.Adam(list(enc.parameters())+list(dec.parameters()),
                                   lr=LEARNING_RATE,
                                   betas=(BETA1, 0.999))

@@ -15,7 +15,7 @@ class Logistic(Distribution):
     R"""The univariate Logistic distribution.
 
     .. math::
-       f(x \mid \mu, s) = \frac{\exp\left(-\frac{x-\mu}{s}\right)}{s\left(1+\exp\left(-\frac{x-\mu}{s}\right)\right)}
+       f(x \mid \mu, s) = \frac{\exp\left(-\frac{x-\mu}{s}\right)}{s\left(1+\exp\left(-\frac{x-\mu}{s}\right)\right)^2}
 
     ========  ==========================================
     Support   :math:`x \in \mathbb{R}`

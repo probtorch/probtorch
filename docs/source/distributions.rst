@@ -33,3 +33,8 @@ Distributions
 
 .. autoclass:: probtorch.distributions.Laplace
 
+:hidden:`Logistic`
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: probtorch.distributions.Logistic
+

@@ -15,7 +15,9 @@ class TestLogistic(TestCase):
 
         # test log probability
         res1 = dist.log_prob(value).data
-        res2 = logistic.logpdf(value.data.numpy(),mu.data.numpy(), s.data.numpy())
+        res2 = logistic.logpdf(value.data.numpy(), 
+                               mu.data.numpy(), 
+                               s.data.numpy())
         res2[np.isinf(res2)]=dist.LOG_0
         self.assertEqual(res1, res2)
         
@@ -27,7 +29,9 @@ class TestLogistic(TestCase):
 
         # test cdf
         res1 = dist.cdf(value).data
-        res2 = logistic.cdf(value.data.numpy(),mu.data.numpy(), s.data.numpy())
+        res2 = logistic.cdf(value.data.numpy(),
+                            mu.data.numpy(), 
+                            s.data.numpy())
         self.assertEqual(res1, res2)
         
     def test_inv_cdf(self):
@@ -38,7 +42,9 @@ class TestLogistic(TestCase):
 
         # test inverse cdf
         res1 = dist.inv_cdf(value).data
-        res2 = logistic.ppf(value.data.numpy(),mu.data.numpy(), s.data.numpy())
+        res2 = logistic.ppf(value.data.numpy(), 
+                            mu.data.numpy(), 
+                            s.data.numpy())
         self.assertEqual(res1, res2)
     
     def test_sample(self): 
@@ -50,7 +56,9 @@ class TestLogistic(TestCase):
         samples=torch.zeros(SAMPLE_COUNT)
         for n in range(SAMPLE_COUNT):
             samples[n] = dist.sample().data[0]
-        _,p =kstest(samples.numpy(),'logistic',(mu.data.numpy(),s.data.numpy()))
+        _,p = kstest(samples.numpy(), 
+                     'logistic',
+                     (mu.data.numpy(),s.data.numpy()))
         assert p>0.05
 
 if __name__ == '__main__':

@@ -15,14 +15,21 @@ class Logistic(Distribution):
     R"""The univariate Logistic distribution.
 
     .. math::
-       f(x \mid \mu, s) = \frac{\exp\left(-\frac{x-\mu}{s}\right)}{s\left(1+\exp\left(-\frac{x-\mu}{s}\right)\right)^2}
+       f(x \mid \mu, s) = 
+       \frac{\exp \left( 
+                    -\frac{x-\mu}{s} 
+                  \right)}
+            {s \left(
+                 1 + \exp \left( 
+                            - \frac{x-\mu}{s}
+                          \right)
+                \right)^2}
 
     ========  ==========================================
     Support   :math:`x \in \mathbb{R}`
     Mean      :math:`\mu`
     Variance  :math:`\frac{s^2\pi^2}{3}`
     ========  ==========================================
-
 
     Parameters:
         mu(:obj:`Variable`): Mean.
@@ -58,18 +65,20 @@ class Logistic(Distribution):
     
     @property
     def variance(self):
-        return (math.pi*self._s)**2/3
+        return (math.pi * self._s)**2 / 3
     
     def cdf(self, value):
-        return 1.0 / (1+ torch.exp(-(value - self._mu)/self._s))
+        return 1.0 / (1 + torch.exp(-(value - self._mu) / self._s))
 
     def inv_cdf(self, value):
-        return self._mu + self._s * (torch.log(value) - torch.log(1.0-value))
+        return self._mu + self._s * (torch.log(value) - torch.log(1.0 - value))
         
     def sample(self):
-        u = Variable(torch.Tensor(self._size).type(self._type).uniform_(self.EPS, 1.0-self.EPS))
-        return self._mu + self._s * (torch.log(u) - torch.log(1.0-u))
+        u = Variable(torch.Tensor(self._size)
+                       .type(self._type)
+                       .uniform_(self.EPS, 1.0-self.EPS))
+        return self._mu + self._s * (torch.log(u) - torch.log(1.0 - u))
         
     def log_prob(self, value):
         y= (value-self._mu)/self._s
-        return -y - 2*torch.log(1+torch.exp(-y)) - torch.log(self._s)
+        return -y - 2 * torch.log(1 + torch.exp(-y)) - torch.log(self._s)

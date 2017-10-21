@@ -106,3 +106,4 @@ ENV/
 # emacs-related
 .projectile
 .dir-locals.el
+.flake8rc

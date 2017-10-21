@@ -102,3 +102,7 @@ ENV/
 
 # macos
 .DS_Store
+
+# emacs-related
+.projectile
+.dir-locals.el

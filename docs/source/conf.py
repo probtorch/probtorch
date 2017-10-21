@@ -49,13 +49,13 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    #'sphinxcontrib.googleanalytics',
+    # 'sphinxcontrib.googleanalytics',
 ]
 
 napoleon_use_ivar = True
 
-#googleanalytics_id = None
-#googleanalytics_enabled = False
+# googleanalytics_id = None
+# googleanalytics_enabled = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

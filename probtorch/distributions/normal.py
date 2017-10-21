@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 class Normal(Distribution):
-    R"""The univariate normal distribution.
+    r"""The univariate normal distribution.
 
     .. math::
        f(x \mid \mu, \sigma) =
@@ -33,7 +33,7 @@ class Normal(Distribution):
         mu(:obj:`Variable`): Mean.
         sigma(:obj:`Variable`, optional): Standard deviation (sigma > 0).
         tau(:obj:`Variable`, optional): Precision (tau > 0).
-        size(tuple, optional): Sample size. 
+        size(tuple, optional): Sample size.
 
     Attributes:
         mean(:obj:`Variable`): Mean (mu).
@@ -41,11 +41,12 @@ class Normal(Distribution):
         variance(:obj:`Variable`): Variance (equal to sigma**2 or 1/tau)
 
     Note:
-        Only one of sigma or tau can be specified. When neither is specified, 
+        Only one of sigma or tau can be specified. When neither is specified,
         the default is sigma = tau = 1.0
     """
+
     def __init__(self, mu, sigma=None, tau=None, size=None):
-        if not sigma is None and not tau is None:
+        if sigma is not None and tau is not None:
             raise ValueError("Either sigma or tau may be specified, not both.")
         if sigma is None and tau is None:
             sigma = 1.0
@@ -62,14 +63,14 @@ class Normal(Distribution):
         self._sigma = sigma
         self._tau = Variable(torch.Tensor([tau])) if isinstance(tau, Number) else tau
         assert(broadcast_size(mu, sigma) == (mu + sigma).size())
-        super(Normal, self).__init__(expanded_size(size, 
-                                        broadcast_size(mu, sigma)),
+        super(Normal, self).__init__(expanded_size(size, broadcast_size(mu, sigma)),
                                      mu.data.type(),
                                      GradientType.REPARAMETERIZED)
+
     @property
     def mu(self):
         return self._mu
-    
+
     @property
     def sigma(self):
         return self._sigma
@@ -81,7 +82,7 @@ class Normal(Distribution):
     @property
     def mode(self):
         return self._mu
-   
+
     @property
     def variance(self):
         return self._sigma**2
@@ -91,5 +92,5 @@ class Normal(Distribution):
         return self._mu + self._sigma * eps
 
     def log_prob(self, value):
-        return -0.5 * (torch.log(2 * math.pi * self._sigma**2)
-                       + ((value - self._mu) / self._sigma)**2)
+        return -0.5 * (torch.log(2 * math.pi * self._sigma**2) +
+                       ((value - self._mu) / self._sigma)**2)

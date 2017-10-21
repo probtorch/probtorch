@@ -1,5 +1,5 @@
 from collections import OrderedDict, MutableMapping
-from . import distributions 
+from . import distributions
 import abc
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
@@ -52,7 +52,7 @@ class RandomVariable(Stochastic):
     def observed(self):
         return self._observed
 
-    @property   
+    @property
     def log_prob(self):
         if self._log_prob is None:
             self._log_prob = self._dist.log_prob(self._value)
@@ -62,7 +62,7 @@ class RandomVariable(Stochastic):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
                                                      repr(self._value.data))
 class Factor(Stochastic):
-    """A Factor wraps a log probability without an associated value. A Factor 
+    """A Factor wraps a log probability without an associated value. A Factor
     only provides a log_prob attribute. The value attribute is `None`.
 
     Parameters:
@@ -84,7 +84,7 @@ class Factor(Stochastic):
         return "Factor with log probability: %s" % repr(self._log_prob.data)
 
 class Loss(Stochastic):
-    """A Loss associates a log probability with a variable of the form 
+    """A Loss associates a log probability with a variable of the form
     `-loss(value, target)`.
 
     Parameters:
@@ -113,10 +113,10 @@ class Loss(Stochastic):
         return "Loss with log probability: %s" % repr(self._log_prob.data)
 
 class Trace(MutableMapping):
-    """A dictionary-like container for stochastic variables. Entries are 
+    """A dictionary-like container for stochastic variables. Entries are
     ordered and can be retrieved by key, which by convention is a string,
-    or by index. A Trace is write-once, in the sense that an entry cannot 
-    be removed or reassigned. 
+    or by index. A Trace is write-once, in the sense that an entry cannot
+    be removed or reassigned.
     """
     def __init__(self):
         # TODO Python 3 dicts are ordered as of 3.6,
@@ -129,7 +129,7 @@ class Trace(MutableMapping):
 
     def __setitem__(self, name, node):
         if not isinstance(node, Stochastic):
-            raise TypeError("Argument node must be an instance of " 
+            raise TypeError("Argument node must be an instance of "
                             "probtorch.Stochastic")
         if name in self._nodes:
             raise ValueError("Trace already contains a node with "
@@ -161,7 +161,7 @@ class Trace(MutableMapping):
             dsize = 'x'.join([str(d) for d in node.value.data.size()])
             val_repr = "[%s of size %s]" % (dtype, dsize)
             node_repr = "%s(%s)" % (dname, val_repr)
-            item_reprs.append("%s: %s" % (repr(n), node_repr)) 
+            item_reprs.append("%s: %s" % (repr(n), node_repr))
         return "Trace{%s}" % ", ".join(item_reprs)
 
     def iloc(self, pos):
@@ -173,7 +173,7 @@ class Trace(MutableMapping):
         node does not have a name attribute, then a unique name is generated.
         """
         if not isinstance(node, Stochastic):
-            raise TypeError("Argument node must be an instance of" 
+            raise TypeError("Argument node must be an instance of"
                             "probtorch.Stochastic")
         # construct a new node name
         if isinstance(node, RandomVariable):
@@ -227,15 +227,15 @@ class Trace(MutableMapping):
     # TODO: we need to automate this, and add docstring magic
     def normal(self, mu, sigma=None, tau=None, name=None, value=None, **kwargs):
         """Creates a new Normal-distributed RandomVariable node."""
-        return self.variable(distributions.Normal, mu, sigma=sigma, tau=tau, 
+        return self.variable(distributions.Normal, mu, sigma=sigma, tau=tau,
                              name=name, value=value, **kwargs)
 
     def concrete(self, log_weights, temp, name=None, value=None, **kwargs):
         """Creates a new Concrete-distributed RandomVariable node."""
-        return self.variable(distributions.Concrete, log_weights, temp, 
+        return self.variable(distributions.Concrete, log_weights, temp,
                              name=name, value=value, **kwargs)
 
     def uniform(self, lower=0.0, upper=1.0, name=None, value=None, **kwargs):
         """Creates a new Uniform-distributed RandomVariable node."""
-        return self.variable(distributions.Uniform, lower=lower, upper=upper, 
+        return self.variable(distributions.Uniform, lower=lower, upper=upper,
                              name=name, value=value, **kwargs)

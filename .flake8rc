@@ -1,0 +1,4 @@
+# https://github.com/pytorch/pytorch/blob/d0db624e02951c4dd6eb6b21d051f7ccf8133707/setup.cfg
+[flake8]
+max-line-length = 120
+ignore = E302,E305,E402,E721,E731,F401,F403,F405,F811,F812,F821,F841

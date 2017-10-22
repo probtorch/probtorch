@@ -1,16 +1,15 @@
 """Implements the Concrete distribution (a relaxation of the one-hot Categorical)."""
+import math
 import torch
+import torch.nn.functional as F
 from torch.autograd import Variable
 from probtorch.distributions.distribution import *
-from probtorch.util import log_sum_exp, log_softmax, softmax, expanded_size
+from probtorch.util import log_sum_exp, expanded_size
 from numbers import Number
 
 __all__ = [
     "Concrete"
 ]
-
-# TODO: does PyTorch have a default EPS somewhere?
-EPS = 1e-12
 
 class Concrete(Distribution):
     r"""The Gumbel-Softmax relaxation of the discrete distribution, as described
@@ -34,16 +33,12 @@ class Concrete(Distribution):
         Gumbel-Softmax. ICLR 2017.
     """
 
-    def __init__(self, log_weights, temperature, size=None, log_pdf=False):
+    def __init__(self, log_weights, temperature, log_pdf=False):
         self._log_pdf = log_pdf
-        if isinstance(temperature, Number):
-            temperature = Variable(torch.Tensor([temperature]))
         self._temperature = temperature
-        if size is not None:
-            size = expanded_size(size, log_weights.size())
-            log_weights = log_weights.expand(*size)
         self._log_weights = log_weights
-        self._log_probs = log_softmax(self._log_weights)
+        self._log_probs = F.log_softmax(self._log_weights, 
+                                        self._log_weights.dim() - 1)
         # TODO: we should just be able to call log_weights.type()
         # but apparently the variable API does not expose this
         # call syntax.
@@ -63,26 +58,35 @@ class Concrete(Distribution):
     def mean(self):
         return torch.exp(self._log_probs)
 
-    def sample(self):
-        uniform = Variable(torch.rand(self._size).type(self._type))
-        gumbel = - torch.log(- torch.log(uniform + EPS) + EPS)
+    def sample(self, *sizes):
+        size = expanded_size(sizes, self._size)
+        uniform = Variable(torch.rand(size).type(self._type))
+        gumbel = - torch.log(- torch.log(uniform + self.EPS) + self.EPS)
         logits = (self._log_weights + gumbel) / self._temperature
-        return softmax(logits)
+        return F.softmax(logits, logits.dim() - 1)
 
     def log_pmf(self, value):
+        """Returns the probability mass, which is the probability of the argmax
+        of the value under the corresponding Discrete distribution."""
         if value.data.type() != 'torch.LongTensor':
             _, value = value.max(-1)
-        if value.dim() < len(self.size[:-1]):
-            value = value.expand(*self.size[:-1])
-        # score according to marginal probabilities
-        return self._log_probs.gather(-1, value.unsqueeze(-1)).squeeze(-1)
+        if value.dim() < len(self._size[:-1]):
+            value = value.expand(*self._size[:-1])
+        log_probs = self._log_probs
+        if value.dim() > len(self._size[:-1]):
+            log_probs = self._log_probs.expand(*value.size(), self._size[-1])
+        return log_probs.gather(-1, value.unsqueeze(-1)).squeeze(-1)
 
     def log_pdf(self, value):
-        # calculate probabilities under pdf
-        k = Variable(torch.Tensor([self._size[-1]]))
+        """Returns the marginal probability density for the relaxed value."""
+        k = self._size[-1]
         log_value = torch.log(value)
-        return (Variable(torch.lgamma(k.data - 1.)) +
-                (k - 1.) * torch.log(self._temperature) +
+        if isinstance(self._temperature, Number):
+            log_temp = math.log(self._temperature)
+        else:
+            log_temp = torch.log(self._temperature)            
+        return (Variable(torch.lgamma(torch.Tensor([k]) - 1.)) +
+                (k - 1.) * log_temp +
                 torch.sum(self._log_weights, -1) +
                 torch.sum(log_value * (self._temperature - 1.0), -1) -
                 k * log_sum_exp(self._log_weights + log_value * self._temperature, -1))

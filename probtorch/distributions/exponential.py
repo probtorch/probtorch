@@ -1,17 +1,15 @@
 """Implements the Univariate Exponential distribution."""
-
+import math
 import torch
 from torch.autograd import Variable
-import math
 from probtorch.distributions.distribution import *
-from probtorch.util import broadcast_size, expanded_size
+from probtorch.util import expanded_size
 from numbers import Number
 
 __all__ = [
     "Exponential"
 ]
 
-EPS = 1e-12
 
 class Exponential(Distribution):
     r"""The univariate Exponential distribution.
@@ -35,13 +33,16 @@ class Exponential(Distribution):
         variance(:obj:`Variable`): Variance (equal to 1/lam**2)
     """
 
-    def __init__(self, lam, size=None):
-
-        self._lam = Variable(torch.Tensor([lam])) if isinstance(lam, Number) else lam
-
-        super(Exponential, self).__init__(expanded_size(size, lam.size()),
-                                          lam.data.type(),
-                                          GradientType.REPARAMETERIZED)
+    def __init__(self, lam):
+        self._lam = lam
+        if isinstance(lam, Number):
+            super(Exponential, self).__init__((1,),
+                                              'torch.FloatTensor',
+                                              GradientType.REPARAMETERIZED)
+        else:
+            super(Exponential, self).__init__(lam.size(),
+                                              lam.data.type(),
+                                              GradientType.REPARAMETERIZED)
 
     @property
     def lam(self):
@@ -55,14 +56,17 @@ class Exponential(Distribution):
     def variance(self):
         return 1.0 / self._lam**2
 
-    def sample(self):
-        uniform = Variable(torch.clamp(torch.rand(self._size).type(self._type),
-                                       EPS,
-                                       1 - EPS))
-        return - torch.log(uniform) / self._lam
+    def sample(self, *sizes):
+        size = expanded_size(sizes, self._size)
+        uniform = torch.rand(size).type(self._type)
+        clamped = Variable(torch.clamp(uniform, self.EPS, 1 - self.EPS))
+        return - torch.log(clamped) / self._lam
 
     def log_prob(self, value):
-        mask = torch.ge(value, 0.0).type(torch.DoubleTensor)
+        log = math.log if isinstance(self._lam, Number) else torch.log
         # TODO: apparently, this is slow:
         # https://discuss.pytorch.org/t/bytetensor-to-floattensor-is-slow/3672
-        return mask * (torch.log(self._lam) - self._lam * value) + (1 - mask) * self.LOG_0
+        mask = torch.ge(value, 0.0).type(torch.DoubleTensor)
+        log_prob = mask * (log(self._lam) - self._lam * value)
+        log_prob_0 = (1 - mask) * self.LOG_0
+        return log_prob + log_prob_0

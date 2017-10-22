@@ -7,10 +7,10 @@ import math
 
 __all__ = ['broadcast_size',
            'expanded_size',
-           'batch_sum', 
-           'partial_sum', 
-           'log_sum_exp', 
-           'log_softmax', 
+           'batch_sum',
+           'partial_sum',
+           'log_sum_exp',
+           'log_softmax',
            'softmax']
 
 def broadcast_size(a, b):
@@ -47,25 +47,25 @@ def expanded_size(expand_size, orig_size):
 
 def batch_sum(v, sample_dim=None, batch_dim=None):
     keepdims = []
-    if not sample_dim is None:
+    if sample_dim is not None:
         keepdims.append(sample_dim)
-    if not batch_dim is None:
+    if batch_dim is not None:
         keepdims.append(batch_dim)
-    return partial_sum(v, keepdims)    
+    return partial_sum(v, keepdims)
 
 def partial_sum(v, keep_dims=[]):
-    """Sums variable or tensor of all dimensions except the dimensions 
+    """Sums variable or tensor of all dimensions except the dimensions
     specified in keep_dims"""
-    if not keep_dims: 
+    if not keep_dims:
         return v.sum()
     else:
         # check if we need to permute
-        if any([k != d for k,d in enumerate(keep_dims)]):
-            dims = list(keep_dims) + [d for d in range(v.dim()) 
+        if any([k != d for k, d in enumerate(keep_dims)]):
+            dims = list(keep_dims) + [d for d in range(v.dim())
                                       if d not in keep_dims]
             v = v.clone()
             v.permute(dims)
-        size = list(v.size())[:len(keep_dims)] + [-1,]
+        size = list(v.size())[:len(keep_dims)] + [-1, ]
         return v.view(size).sum(-1)
 
 def log_mean_exp(value, dim=None, keepdim=False):
@@ -85,18 +85,16 @@ def log_sum_exp(value, dim=None, keepdim=False):
     value.exp().sum(dim, keepdim).log()
     """
     # TODO: torch.max(value, dim=None) threw an error
-    # at time of writing -> post an issue with PyTorch devs 
+    # at time of writing -> post an issue with PyTorch devs
     # TODO: torch.max(v, dim=0, keepdim=False) does not eliminate
     # first dimension -> post an issue with PyTorch devs
-    if not dim is None:
+    if dim is not None:
         m, _ = torch.max(value, dim=dim, keepdim=True)
         value0 = value - m
-        if keepdim==False:
+        if keepdim is False:
             m = m.squeeze(dim)
-        return m + torch.log(
-                        torch.sum(
-                            torch.exp(value0),
-                            dim=dim, keepdim=keepdim))
+        return m + torch.log(torch.sum(torch.exp(value0),
+                                       dim=dim, keepdim=keepdim))
     else:
         m = torch.max(value)
         # TODO: this works when value is a variable,
@@ -104,7 +102,6 @@ def log_sum_exp(value, dim=None, keepdim=False):
         # returns a float for tensors, and `torch.log`
         # does not accept float input.
         return m + torch.log(torch.sum(torch.exp(value - m)))
-
 
 def wrap_2d_unitary(f):
     @wraps(f)

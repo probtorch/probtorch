@@ -3,7 +3,6 @@ import time
 import datetime
 import sys
 sys.path.append('../')
-
 import torch
 from torch import nn
 from torch.autograd import Variable
@@ -13,7 +12,7 @@ NUM_PIXELS = 784
 NUM_HIDDEN = 256
 NUM_DIGITS = 10
 NUM_STYLE = 2
-NUM_SAMPLES = 4 # can set to None to revert to single-sample case
+NUM_SAMPLES = 4  # can set to None to revert to single-sample case
 
 BATCH_SIZE = 128
 NUM_EPOCHS = 10
@@ -28,20 +27,22 @@ SEED = 12345
 DATA_PATH = '../data'
 WEIGHTS_PATH = '../weights'
 
-if CUDA and not SEED is None:
+if CUDA and SEED is not None:
     torch.cuda.manual_seed(SEED)
 
 class Encoder(nn.Module):
-    def __init__(self, num_pixels=NUM_PIXELS, 
-                       num_hidden=NUM_HIDDEN,
-                       num_digits=NUM_DIGITS,
-                       num_style=NUM_STYLE,
-                       num_batch=BATCH_SIZE):
+    def __init__(self,
+                 num_pixels=NUM_PIXELS,
+                 num_hidden=NUM_HIDDEN,
+                 num_digits=NUM_DIGITS,
+                 num_style=NUM_STYLE,
+                 num_batch=BATCH_SIZE):
         super(self.__class__, self).__init__()
-        self.enc_hidden = nn.Sequential( 
-                            nn.Linear(num_pixels, num_hidden),
-                            #nn.BatchNorm1d(num_hidden),
-                            nn.ReLU())
+        self.enc_hidden = nn.Sequential(
+            nn.Linear(num_pixels, num_hidden),
+            # nn.BatchNorm1d(num_hidden),
+            nn.ReLU()
+        )
         # encode digit
         self.log_weights = nn.Linear(num_hidden, num_digits)
         self.temp = Variable(torch.Tensor([0.66]))
@@ -50,9 +51,9 @@ class Encoder(nn.Module):
         self.log_std = nn.Linear(num_hidden + num_digits, num_style)
 
     def forward(self, images, labels=None, num_samples=None):
-        if not num_samples is None:
+        if num_samples is not None:
             images = images.expand(num_samples, *images.size())
-            if not labels is None:
+            if labels is not None:
                 labels = labels.expand(num_samples, *labels.size())
         q = probtorch.Trace()
         hiddens = self.enc_hidden(images)
@@ -69,11 +70,12 @@ class Encoder(nn.Module):
         return q
 
 class Decoder(nn.Module):
-    def __init__(self, num_pixels=NUM_PIXELS, 
-                       num_hidden=NUM_HIDDEN,
-                       num_digits=NUM_DIGITS,
-                       num_style=NUM_STYLE,
-                       num_batch=BATCH_SIZE):
+    def __init__(self,
+                 num_pixels=NUM_PIXELS,
+                 num_hidden=NUM_HIDDEN,
+                 num_digits=NUM_DIGITS,
+                 num_style=NUM_STYLE,
+                 num_batch=BATCH_SIZE):
         super(self.__class__, self).__init__()
         self.digit_log_weights = nn.Parameter(torch.zeros(num_digits))
         self.digit_temp = Variable(torch.Tensor([0.66]))
@@ -81,13 +83,15 @@ class Decoder(nn.Module):
         self.style_log_std = Variable(torch.zeros(num_style))
 
         self.dec_hidden = nn.Sequential(
-                            nn.Linear(num_style + num_digits, num_hidden),
-                            #nn.BatchNorm1d(num_hidden),
-                            nn.ReLU())
+            nn.Linear(num_style + num_digits, num_hidden),
+            # nn.BatchNorm1d(num_hidden),
+            nn.ReLU()
+        )
         self.dec_image = nn.Sequential(
-                           nn.Linear(num_hidden, num_pixels),
-                           nn.Sigmoid())
-        #self.bce = nn.BCELoss(size_average=False)
+            nn.Linear(num_hidden, num_pixels),
+            nn.Sigmoid()
+        )
+        # self.bce = nn.BCELoss(size_average=False)
 
     def forward(self, images, q, num_samples=None):
         sample_size = (num_samples,) if num_samples else ()
@@ -100,12 +104,13 @@ class Decoder(nn.Module):
                             name='digits')
         styles = p.normal(self.style_mean,
                           torch.exp(self.style_log_std),
-                          size=sample_size+(batch_size,),
+                          size=sample_size + (batch_size,),
                           value=q['styles'],
                           name='styles')
         hiddens = self.dec_hidden(torch.cat([digits.float(), styles], -1))
         images_mean = self.dec_image(hiddens)
-        p.loss(lambda x_hat, x: -(torch.log(x_hat + EPS) * x + torch.log(1 - x_hat + EPS) * (1-x)).sum(-1),
+        p.loss(lambda x_hat, x: -(torch.log(x_hat + EPS) * x +
+                                  torch.log(1 - x_hat + EPS) * (1 - x)).sum(-1),
                images_mean,
                images.expand(*images_mean.size()),
                name='images')
@@ -120,7 +125,7 @@ def elbo_loss(q, p, alpha=0.1):
 unsup_loss = elbo_loss
 sup_loss = elbo_loss
 
-def train(data, enc, dec, optimizer, 
+def train(data, enc, dec, optimizer,
           label_mask={}, label_fraction=LABEL_FRACTION):
     epoch_elbo = 0.0
     enc.train()
@@ -138,7 +143,7 @@ def train(data, enc, dec, optimizer,
             if label_mask[b]:
                 labels_onehot = torch.zeros(BATCH_SIZE, NUM_DIGITS)
                 labels_onehot.scatter_(1, labels.unsqueeze(1), 1)
-                labels_onehot = labels_onehot.clamp(labels_onehot, EPS, 1-EPS)
+                labels_onehot = labels_onehot.clamp(labels_onehot, EPS, 1 - EPS)
                 if CUDA:
                     labels_onehot.cuda()
                 q = enc(images, Variable(labels_onehot), num_samples=NUM_SAMPLES)
@@ -168,63 +173,61 @@ def test(data, enc, dec):
             p = dec(images, q, num_samples=NUM_SAMPLES)
             epoch_elbo += unsup_loss(q, p).data.numpy()[0]
             _, y_pred = q['digits'].value.data.max(-1)
-            epoch_correct += (labels == y_pred).sum()*1.0 / (NUM_SAMPLES or 1.0)
+            epoch_correct += (labels == y_pred).sum() * 1.0 / (NUM_SAMPLES or 1.0)
     return epoch_elbo / N, epoch_correct / N
 
 def git_revision():
     import subprocess
-    result = subprocess.run(
-                "git rev-parse --short HEAD".split(), 
-                stdout=subprocess.PIPE)
+    result = subprocess.run("git rev-parse --short HEAD".split(),
+                            stdout=subprocess.PIPE)
     return result.stdout.strip()
 
 if __name__ == '__main__':
     from torchvision import datasets, transforms
-    import os 
+    import os
 
     if not os.path.isdir(DATA_PATH):
         os.makedirs(DATA_PATH)
 
     train_data = torch.utils.data.DataLoader(
-                    datasets.MNIST(DATA_PATH, 
-                                   train=True, download=True,
-                                   transform=transforms.ToTensor()),
-                    batch_size=BATCH_SIZE, 
-                    shuffle=True) 
+        datasets.MNIST(DATA_PATH,
+                       train=True, download=True,
+                       transform=transforms.ToTensor()),
+        batch_size=BATCH_SIZE,
+        shuffle=True)
     test_data = torch.utils.data.DataLoader(
-                    datasets.MNIST(DATA_PATH, 
-                                   train=False, download=True,
-                                   transform=transforms.ToTensor()),
-                    batch_size=BATCH_SIZE, 
-                    shuffle=True) 
+        datasets.MNIST(DATA_PATH,
+                       train=False, download=True,
+                       transform=transforms.ToTensor()),
+        batch_size=BATCH_SIZE,
+        shuffle=True)
     enc = Encoder()
     dec = Decoder()
     if CUDA:
         enc.cuda()
         dec.cuda()
-    optimizer =  torch.optim.Adam(list(enc.parameters())+list(dec.parameters()),
-                                  lr=LEARNING_RATE,
-                                  betas=(BETA1, 0.999))
+    optimizer = torch.optim.Adam(list(enc.parameters()) + list(dec.parameters()),
+                                 lr=LEARNING_RATE,
+                                 betas=(BETA1, 0.999))
     mask = {}
     for e in range(NUM_EPOCHS):
         train_start = time.time()
-        train_elbo, mask = train(train_data, enc, dec, 
+        train_elbo, mask = train(train_data, enc, dec,
                                  optimizer, mask, LABEL_FRACTION)
         train_end = time.time()
         test_start = time.time()
         test_elbo, test_accuracy = test(test_data, enc, dec)
         test_end = time.time()
         print('[Epoch %d] Train: ELBO %.4e (%ds) Test: ELBO %.4e, Accuracy %0.3f (%ds)' % (
-                e, train_elbo, train_end - train_start, 
-                test_elbo, test_accuracy, test_end - test_start))
+            e, train_elbo, train_end - train_start,
+            test_elbo, test_accuracy, test_end - test_start))
 
     if not os.path.isdir(WEIGHTS_PATH):
         os.makedirs(WEIGHTS_PATH)
     hash = git_revision()
     id = datetime.datetime.now().strftime('%y%m%d-%H%M')
 
-    torch.save(enc.state_dict(), 
+    torch.save(enc.state_dict(),
                '%s/cmnist-%s-%s-enc.rar' % (WEIGHTS_PATH, id, hash))
-    torch.save(dec.state_dict(), 
+    torch.save(dec.state_dict(),
                '%s/cmnist-%s-%s-dec.rar' % (WEIGHTS_PATH, id, hash))
-

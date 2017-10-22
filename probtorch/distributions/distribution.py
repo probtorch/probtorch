@@ -23,9 +23,9 @@ GradientType.REINFORCE = GradientType("reinforce")
 GradientType.NONE = GradientType("none")
 
 class Distribution(object):
-    LOG_0=-12.0
-    EPS=1e-12
-    
+    LOG_0 = -12.0
+    EPS = 1e-12
+
     def __init__(self, size, data_type, gradient_type):
         self._size = size
         self._type = data_type

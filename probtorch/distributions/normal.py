@@ -4,7 +4,7 @@ import torch
 from torch.autograd import Variable
 import math
 from probtorch.distributions.distribution import *
-from probtorch.util import broadcast_size, expanded_size
+from probtorch.util import expanded_size
 from numbers import Number
 
 __all__ = [
@@ -45,7 +45,7 @@ class Normal(Distribution):
         the default is sigma = tau = 1.0
     """
 
-    def __init__(self, mu, sigma=None, tau=None, size=None):
+    def __init__(self, mu, sigma=None, tau=None):
         if sigma is not None and tau is not None:
             raise ValueError("Either sigma or tau may be specified, not both.")
         if sigma is None and tau is None:
@@ -55,17 +55,18 @@ class Normal(Distribution):
             tau = sigma**-2
         if sigma is None:
             sigma = tau**-0.5
-        if isinstance(mu, Number):
-            mu = Variable(torch.Tensor([mu]))
-        if isinstance(sigma, Number):
-            sigma = Variable(torch.Tensor([sigma]))
         self._mu = mu
         self._sigma = sigma
-        self._tau = Variable(torch.Tensor([tau])) if isinstance(tau, Number) else tau
-        assert(broadcast_size(mu, sigma) == (mu + sigma).size())
-        super(Normal, self).__init__(expanded_size(size, broadcast_size(mu, sigma)),
-                                     mu.data.type(),
-                                     GradientType.REPARAMETERIZED)
+        self._tau = tau
+        _mu0 = mu / sigma
+        if isinstance(_mu0, Number):
+            super(Normal, self).__init__((1,),
+                                         'torch.FloatTensor',
+                                         GradientType.REPARAMETERIZED)
+        else:
+            super(Normal, self).__init__(_mu0.size(),
+                                         _mu0.data.type(),
+                                         GradientType.REPARAMETERIZED)
 
     @property
     def mu(self):
@@ -87,10 +88,13 @@ class Normal(Distribution):
     def variance(self):
         return self._sigma**2
 
-    def sample(self):
-        eps = Variable(torch.randn(self._size)).type(self._type)
+    def sample(self, *sizes):
+        size = expanded_size(sizes, self._size)
+        eps = Variable(torch.randn(*size).type(self._type))
         return self._mu + self._sigma * eps
 
     def log_prob(self, value):
-        return -0.5 * (torch.log(2 * math.pi * self._sigma**2) +
+        # TODO: hopefully this goes away soon 
+        log = math.log if isinstance(self._sigma, Number) else torch.log
+        return -0.5 * (log(2 * math.pi * self._sigma**2) +
                        ((value - self._mu) / self._sigma)**2)

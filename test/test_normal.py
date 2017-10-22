@@ -1,4 +1,5 @@
 from scipy.stats import norm, kstest
+import math
 from probtorch.distributions.normal import Normal
 import torch
 from common import TestCase, run_tests, SAMPLE_COUNT
@@ -22,11 +23,11 @@ class TestNormal(TestCase):
     def test_sample(self):
         # TODO: this only works for scalar continuous distributions,
         # just to make sure things are ok until we write a better sample test
-        mu = Variable(torch.randn(1))
-        sigma = torch.exp(Variable(torch.randn(1)))
-        dist = Normal(mu, sigma, size=(SAMPLE_COUNT,))
-        samples = dist.sample().data
-        _, p = kstest(samples.numpy(), 'norm', (mu.data.numpy(), sigma.data.numpy()))
+        mu = torch.randn(1)[0]
+        sigma = math.exp(torch.randn(1)[0])
+        dist = Normal(mu, sigma)
+        samples = dist.sample(SAMPLE_COUNT).data
+        _, p = kstest(samples.numpy(), 'norm', (mu, sigma))
         assert p > 0.05
 
 if __name__ == '__main__':

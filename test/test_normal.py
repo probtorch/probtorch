@@ -5,8 +5,8 @@ import torch
 from common import TestCase, run_tests, SAMPLE_COUNT
 from torch.autograd import Variable
 
-class TestNormal(TestCase):
 
+class TestNormal(TestCase):
     def test_logprob(self):
         mu = Variable(torch.randn(100))
         sigma = torch.exp(Variable(torch.randn(100)))
@@ -56,6 +56,7 @@ class TestNormal(TestCase):
                 dist = Normal(mu, sigma)
                 log_prob = dist.log_prob(value)
                 self.assertEqual(sizes, log_prob.size())
+
 
 if __name__ == '__main__':
     run_tests()

@@ -58,9 +58,10 @@ class Exponential(Distribution):
 
     def sample(self, *sizes):
         size = expanded_size(sizes, self._size)
-        uniform = torch.rand(size).type(self._type)
-        clamped = Variable(torch.clamp(uniform, self.EPS, 1 - self.EPS))
-        return - torch.log(clamped) / self._lam
+        uniform = Variable(torch.Tensor(*size)
+                           .type(self._type)
+                           .uniform_(self.EPS, 1.0 - self.EPS))
+        return - torch.log(uniform) / self._lam
 
     def log_prob(self, value):
         log = math.log if isinstance(self._lam, Number) else torch.log

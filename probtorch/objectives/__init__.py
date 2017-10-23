@@ -2,7 +2,6 @@ from . import montecarlo
 from . import importance
 from probtorch.util import batch_sum
 
-
 def log_joint(p, sample_dim=None, batch_dim=None):
     log_P = 0.0
     for v in p:

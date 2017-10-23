@@ -1,5 +1,4 @@
-"""Implements the Concrete distribution (a relaxation of the one-hot
-Categorical)."""
+"""Implements the Concrete distribution (a relaxation of the one-hot Categorical)."""
 import math
 import torch
 import torch.nn.functional as F

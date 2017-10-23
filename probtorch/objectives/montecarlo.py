@@ -1,7 +1,6 @@
 from probtorch.util import batch_sum, log_sum_exp
 import torch
 
-
 def log_like(q, p, sample_dim=None, batch_dim=None):
     r"""Calculates a Monte Carlo estimate of the log-likelihood.
 
@@ -38,7 +37,6 @@ def log_like(q, p, sample_dim=None, batch_dim=None):
             else:
                 W = torch.exp(log_W - log_sum_exp(log_W, 0, True))
                 return (W * log_P).sum(0).mean()
-
 
 def kl(q, p, alpha=0.0, sample_dim=None, batch_dim=None):
     r"""Calculates a Monte Carlo estimate of the KL divergence.
@@ -80,7 +78,6 @@ def kl(q, p, alpha=0.0, sample_dim=None, batch_dim=None):
         else:
             W = torch.exp(log_W - log_sum_exp(log_W, 0, True))
             return (W * (log_Q - log_P)).sum(0).mean() - (1.0 + alpha) * log_W.mean(0).mean()
-
 
 def elbo(q, p, alpha=0.0, sample_dim=None, batch_dim=None):
     r"""Calculates a Monte Carlo estimate of the evidence lower bound.

@@ -27,11 +27,9 @@ def broadcast_size(a, b):
             c_size += (a,)
         else:
             if a != b:
-                raise ValueError("Broadcasting dimensions",
-                                 "must be either equal or 1.")
+                raise ValueError("Broadcasting dimensions must be either equal or 1.")
             c_size += (a,)
     return c_size
-
 
 def expanded_size(expand_size, orig_size):
     """Returns the expanded size given two sizes"""
@@ -80,7 +78,6 @@ def log_mean_exp(value, dim=None, keepdim=False):
         s = value.size(dim)
     return log_sum_exp(value, dim, keepdim) - math.log(s)
 
-
 def log_sum_exp(value, dim=None, keepdim=False):
     """Numerically stable implementation of the operation
 
@@ -95,8 +92,7 @@ def log_sum_exp(value, dim=None, keepdim=False):
         value0 = value - m
         if keepdim is False:
             m = m.squeeze(dim)
-        return m + torch.log(torch.sum(torch.exp(value0),
-                                       dim=dim, keepdim=keepdim))
+        return m + torch.log(torch.sum(torch.exp(value0), dim=dim, keepdim=keepdim))
     else:
         m = torch.max(value)
         # TODO: this works when value is a variable,
@@ -104,4 +100,3 @@ def log_sum_exp(value, dim=None, keepdim=False):
         # returns a float for tensors, and `torch.log`
         # does not accept float input.
         return m + torch.log(torch.sum(torch.exp(value - m)))
-        

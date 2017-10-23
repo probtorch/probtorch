@@ -1,6 +1,5 @@
 from probtorch.util import batch_sum, log_mean_exp
 
-
 def elbo(q, p, alpha=0.0, sample_dim=None, batch_dim=None):
     r"""Calculates an importance weighted estimate of the evidence
     lower bound.

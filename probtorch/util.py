@@ -7,8 +7,8 @@ __all__ = ['broadcast_size',
            'expanded_size',
            'batch_sum',
            'partial_sum',
-           'log_sum_exp']
-
+           'log_sum_exp',
+           'log_mean_exp']
 
 def broadcast_size(a, b):
     """Returns the broadcasted size given two Tensors or Variables"""
@@ -41,31 +41,18 @@ def expanded_size(expand_size, orig_size):
     else:
         return expand_size + orig_size
 
-
 def batch_sum(v, sample_dim=None, batch_dim=None):
-    keepdims = []
-    if sample_dim is not None:
-        keepdims.append(sample_dim)
-    if batch_dim is not None:
-        keepdims.append(batch_dim)
-    return partial_sum(v, keepdims)
-
+    keep_dims = [d for d in [sample_dim, batch_dim] if d is not None]
+    return partial_sum(v, keep_dims=keep_dims)
 
 def partial_sum(v, keep_dims=[]):
-    """Sums variable or tensor of all dimensions except the dimensions
-    specified in keep_dims"""
-    if not keep_dims:
+    """Sums variable or tensor along all dimensions except those in keep_dims"""
+    if len(keep_dims) == 0:
         return v.sum()
     else:
-        # check if we need to permute
-        if any([k != d for k, d in enumerate(keep_dims)]):
-            dims = list(keep_dims) + [d for d in range(v.dim())
-                                      if d not in keep_dims]
-            v = v.clone()
-            v.permute(dims)
-        size = list(v.size())[:len(keep_dims)] + [-1, ]
-        return v.view(size).sum(-1)
-
+        drop_dims = list(set(range(v.dim())) - set(keep_dims))
+        result = v.permute(*(keep_dims + drop_dims))
+        return result.contiguous().view(result.size()[:len(keep_dims)] + (-1,)).sum(-1)
 
 def log_mean_exp(value, dim=None, keepdim=False):
     """Numerically stable implementation of the operation

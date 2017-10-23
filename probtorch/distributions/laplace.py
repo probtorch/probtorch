@@ -99,7 +99,7 @@ class Laplace(Distribution):
         """
         return 1. + torch.log(2.) + torch.log(self._b)
 
-    def CDF(self, x):
+    def cdf(self, x):
         """
         Cumulative distribution function.
         Given the variable X, the CDF is:

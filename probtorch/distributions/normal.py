@@ -11,6 +11,7 @@ __all__ = [
     "Normal"
 ]
 
+
 class Normal(Distribution):
     r"""The univariate normal distribution.
 
@@ -94,7 +95,7 @@ class Normal(Distribution):
         return self._mu + self._sigma * eps
 
     def log_prob(self, value):
-        # TODO: hopefully this goes away soon 
+        # TODO: hopefully this goes away soon
         log = math.log if isinstance(self._sigma, Number) else torch.log
         return -0.5 * (log(2 * math.pi * self._sigma**2) +
                        ((value - self._mu) / self._sigma)**2)

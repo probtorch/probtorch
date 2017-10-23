@@ -38,7 +38,7 @@ def broadcast_size(a, b):
 def expanded_size(expand_size, orig_size):
     """Returns the expanded size given two sizes"""
     # strip leading 1s from original size
-    if expand_size is None:
+    if not expand_size:
         return orig_size
     if orig_size == (1,):
         return expand_size

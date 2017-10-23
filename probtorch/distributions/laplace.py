@@ -3,12 +3,13 @@
 import torch
 from torch.autograd import Variable
 from probtorch.distributions.distribution import *
-from probtorch.util import broadcast_size, expanded_size
+from probtorch.util import expanded_size
 from numbers import Number
 
 __all__ = [
     "Laplace"
 ]
+
 
 class Laplace(Distribution):
     r"""The univariate Laplace distribution.
@@ -35,16 +36,19 @@ class Laplace(Distribution):
         variance(:obj:`Variable`): Variance (equal to 2b**2)
     """
 
-    def __init__(self, mu, b, size=None):
+    def __init__(self, mu, b):
 
-        self._mu = Variable(torch.Tensor([mu])) if isinstance(mu, Number) else mu
-        self._b = Variable(torch.Tensor([b])) if isinstance(b, Number) else b
-
-        assert(broadcast_size(mu, b) == (mu + b).size())
-        super(Laplace, self).__init__(expanded_size(size,
-                                      broadcast_size(mu, b)),
-                                      mu.data.type(),
-                                      GradientType.REPARAMETERIZED)
+        self._mu = mu
+        self._b = b
+        mu0 = mu / b
+        if isinstance(mu0, Number):
+            super(Laplace, self).__init__((1,),
+                                          'torch.FloatTensor',
+                                          GradientType.REPARAMETERIZED)
+        else:
+            super(Laplace, self).__init__(mu0.size(),
+                                          mu0.data.type(),
+                                          GradientType.REPARAMETERIZED)
 
     @property
     def mu(self):
@@ -66,16 +70,19 @@ class Laplace(Distribution):
     def variance(self):
         return 2.0 * self._b**2
 
-    def sample(self):
-        u = torch.Tensor(self._size).type(self._type).uniform_(-0.5, 0.5)
-        uniform = Variable(u)
+    def sample(self, *sizes):
+        size = expanded_size(sizes, self._size)
+        uniform = Variable(torch.Tensor(*size)
+                           .type(self._type)
+                           .uniform_(-0.5, 0.5))
         # if U is uniform in (-.5,.5], then
         # mu - b * sign(U) * log(1 - 2 * abs(U)) is Laplace
-        return (self._mu - self._b *
-                torch.sign(uniform) *
-                torch.log(1.0 - 2.0 * torch.abs(uniform)))
+        return self._mu - (self._b *
+                           torch.sign(uniform) *
+                           torch.log(1.0 - 2.0 * torch.abs(uniform)))
 
     def log_prob(self, value):
-        log_normalizer = (torch.log(2.0 * self._b))
-        log_weight = -(torch.abs(value - self._mu) / self._b)
+        log = math.log if isinstance(self._b, Number) else torch.log
+        log_normalizer = log(2.0 * self._b)
+        log_weight = -torch.abs(value - self._mu) / self._b
         return log_weight - log_normalizer

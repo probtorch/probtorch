@@ -4,6 +4,7 @@ import abc
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
 
+
 class Stochastic(object):
     """Stochastic variables wrap Pytorch Variables to associate a log probability
     density or mass.
@@ -22,6 +23,7 @@ class Stochastic(object):
     def log_prob(self):
         """Holds the log probability of a stochastic variable"""
 
+
 class RandomVariable(Stochastic):
     """Random variables wrap a PyTorch Variable to associate a distribution
     and log probability.
@@ -31,14 +33,12 @@ class RandomVariable(Stochastic):
         value(:obj:`Variable`): The value of the variable.
         observed(bool): Indicates whether the value was sampled or observed.
     """
+
     def __init__(self, dist, value, observed=False):
         self._dist = dist
-        self._log_prob = None
+        self._value = value
+        self._log_prob = dist.log_prob(value)
         self._observed = observed
-        if dist.size == value.size():
-            self._value = value
-        else:
-            self._value = value.expand(*dist.size)
 
     @property
     def dist(self):
@@ -54,13 +54,13 @@ class RandomVariable(Stochastic):
 
     @property
     def log_prob(self):
-        if self._log_prob is None:
-            self._log_prob = self._dist.log_prob(self._value)
         return self._log_prob
 
     def __repr__(self):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
                                                      repr(self._value.data))
+
+
 class Factor(Stochastic):
     """A Factor wraps a log probability without an associated value. A Factor
     only provides a log_prob attribute. The value attribute is `None`.
@@ -68,6 +68,7 @@ class Factor(Stochastic):
     Parameters:
         log_prob(:obj:`Variable`): The log-probability.
     """
+
     def __init__(self, log_prob):
         self._value = None
         self._log_prob = log_prob
@@ -83,6 +84,7 @@ class Factor(Stochastic):
     def __repr__(self):
         return "Factor with log probability: %s" % repr(self._log_prob.data)
 
+
 class Loss(Stochastic):
     """A Loss associates a log probability with a variable of the form
     `-loss(value, target)`.
@@ -92,6 +94,7 @@ class Loss(Stochastic):
         value(:obj:`Variable`): The value.
         target(:obj:`Variable`): The target value.
     """
+
     def __init__(self, loss, value, target):
         self._loss = loss
         self._value = value
@@ -112,12 +115,14 @@ class Loss(Stochastic):
     def __repr__(self):
         return "Loss with log probability: %s" % repr(self._log_prob.data)
 
+
 class Trace(MutableMapping):
     """A dictionary-like container for stochastic variables. Entries are
     ordered and can be retrieved by key, which by convention is a string,
     or by index. A Trace is write-once, in the sense that an entry cannot
     be removed or reassigned.
     """
+
     def __init__(self):
         # TODO Python 3 dicts are ordered as of 3.6,
         # so could we use a normal dict instead?
@@ -225,17 +230,20 @@ class Trace(MutableMapping):
         return value
 
     # TODO: we need to automate this, and add docstring magic
-    def normal(self, mu, sigma=None, tau=None, name=None, value=None, **kwargs):
+    def normal(self, mu, sigma=None, tau=None,
+               name=None, value=None, **kwargs):
         """Creates a new Normal-distributed RandomVariable node."""
         return self.variable(distributions.Normal, mu, sigma=sigma, tau=tau,
                              name=name, value=value, **kwargs)
 
-    def concrete(self, log_weights, temp, name=None, value=None, **kwargs):
+    def concrete(self, log_weights, temp,
+                 name=None, value=None, **kwargs):
         """Creates a new Concrete-distributed RandomVariable node."""
         return self.variable(distributions.Concrete, log_weights, temp,
                              name=name, value=value, **kwargs)
 
-    def uniform(self, lower=0.0, upper=1.0, name=None, value=None, **kwargs):
+    def uniform(self, lower=0.0, upper=1.0,
+                name=None, value=None, **kwargs):
         """Creates a new Uniform-distributed RandomVariable node."""
         return self.variable(distributions.Uniform, lower=lower, upper=upper,
                              name=name, value=value, **kwargs)

@@ -43,12 +43,17 @@ class Logistic(Distribution):
 
     def __init__(self, mu, s, size=None):
 
-        self._mu = Variable(torch.Tensor([mu])) if isinstance(mu, Number) else mu
-        self._s = Variable(torch.Tensor([s])) if isinstance(s, Number) else s
-        assert(broadcast_size(mu, s) == (mu + s).size())
-        super(Logistic, self).__init__(expanded_size(size, broadcast_size(mu, s)),
-                                       mu.data.type(),
-                                       GradientType.REPARAMETERIZED)
+        self._mu = mu
+        self._s = s
+        mu0 = mu / s
+        if isinstance(mu0, Number):
+            super(Logistic, self).__init__((1,),
+                                           'torch.FloatTensor',
+                                           GradientType.REPARAMETERIZED)
+        else:
+            super(Logistic, self).__init__(mu0.size(),
+                                           mu0.data.type(),
+                                           GradientType.REPARAMETERIZED)
 
     @property
     def mu(self):
@@ -72,12 +77,15 @@ class Logistic(Distribution):
     def inv_cdf(self, value):
         return self._mu + self._s * (torch.log(value) - torch.log(1.0 - value))
 
-    def sample(self):
-        u = Variable(torch.Tensor(self._size)
-                     .type(self._type)
-                     .uniform_(self.EPS, 1.0 - self.EPS))
-        return self._mu + self._s * (torch.log(u) - torch.log(1.0 - u))
+    def sample(self, *sizes):
+        size = expanded_size(sizes, self._size)
+        uniform = Variable(torch.Tensor(*size)
+                           .type(self._type)
+                           .uniform_(self.EPS, 1 - self.EPS))
+        return self._mu + self._s * (torch.log(uniform) -
+                                     torch.log(1.0 - uniform))
 
     def log_prob(self, value):
+        log = math.log if isinstance(self._s, Number) else torch.log
         y = (value - self._mu) / self._s
-        return -y - 2 * torch.log(1 + torch.exp(-y)) - torch.log(self._s)
+        return -y - 2 * torch.log(1 + torch.exp(-y)) - log(self._s)

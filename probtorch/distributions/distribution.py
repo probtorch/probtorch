@@ -7,8 +7,10 @@ __all__ = [
     "Distribution"
 ]
 
+
 class GradientType(object):
     """Enumerates gradient implementations for distributions."""
+
     def __init__(self, name):
         self.name = name
 
@@ -18,16 +20,18 @@ class GradientType(object):
     def __repr__(self):
         return "<GradientType: %s>" % self
 
+
 GradientType.REPARAMETERIZED = GradientType("reparameterized")
 GradientType.REINFORCE = GradientType("reinforce")
 GradientType.NONE = GradientType("none")
+
 
 class Distribution(object):
     LOG_0 = -12.0
     EPS = 1e-12
 
-    def __init__(self, size, data_type, gradient_type):
-        self._size = size
+    def __init__(self, event_size, data_type, gradient_type):
+        self._size = event_size
         self._type = data_type
         self._gradient_type = gradient_type
 
@@ -40,10 +44,10 @@ class Distribution(object):
         return self._gradient_type
 
     @property
-    def size(self):
+    def event_size(self):
         return self._size
 
-    def sample(self, sample_size=None):
+    def sample(self, *sizes):
         raise NotImplementedError
 
     def log_prob(self, value):

@@ -104,3 +104,4 @@ def log_sum_exp(value, dim=None, keepdim=False):
         # returns a float for tensors, and `torch.log`
         # does not accept float input.
         return m + torch.log(torch.sum(torch.exp(value - m)))
+        

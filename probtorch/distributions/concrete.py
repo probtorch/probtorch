@@ -77,7 +77,8 @@ class Concrete(Distribution):
             value = value.expand(*self._size[:-1])
         log_probs = self._log_probs
         if value.dim() > len(self._size[:-1]):
-            log_probs = self._log_probs.expand(*value.size(), self._size[-1])
+            size = value.size() + (self._size[-1],)
+            log_probs = self._log_probs.expand(*size)
         return log_probs.gather(-1, value.unsqueeze(-1)).squeeze(-1)
 
     def log_pdf(self, value):

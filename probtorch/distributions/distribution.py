@@ -7,8 +7,10 @@ __all__ = [
     "Distribution"
 ]
 
+
 class GradientType(object):
     """Enumerates gradient implementations for distributions."""
+
     def __init__(self, name):
         self.name = name
 
@@ -18,9 +20,11 @@ class GradientType(object):
     def __repr__(self):
         return "<GradientType: %s>" % self
 
+
 GradientType.REPARAMETERIZED = GradientType("reparameterized")
 GradientType.REINFORCE = GradientType("reinforce")
 GradientType.NONE = GradientType("none")
+
 
 class Distribution(object):
     LOG_0 = -12.0

@@ -1,7 +1,5 @@
 "Helper functions that don't have a better place yet"
 import torch
-from torch.nn import functional as F
-from functools import wraps
 from numbers import Number
 import math
 
@@ -9,9 +7,8 @@ __all__ = ['broadcast_size',
            'expanded_size',
            'batch_sum',
            'partial_sum',
-           'log_sum_exp',
-           'log_softmax',
-           'softmax']
+           'log_sum_exp']
+
 
 def broadcast_size(a, b):
     """Returns the broadcasted size given two Tensors or Variables"""
@@ -35,6 +32,7 @@ def broadcast_size(a, b):
             c_size += (a,)
     return c_size
 
+
 def expanded_size(expand_size, orig_size):
     """Returns the expanded size given two sizes"""
     # strip leading 1s from original size
@@ -45,6 +43,7 @@ def expanded_size(expand_size, orig_size):
     else:
         return expand_size + orig_size
 
+
 def batch_sum(v, sample_dim=None, batch_dim=None):
     keepdims = []
     if sample_dim is not None:
@@ -52,6 +51,7 @@ def batch_sum(v, sample_dim=None, batch_dim=None):
     if batch_dim is not None:
         keepdims.append(batch_dim)
     return partial_sum(v, keepdims)
+
 
 def partial_sum(v, keep_dims=[]):
     """Sums variable or tensor of all dimensions except the dimensions
@@ -68,6 +68,7 @@ def partial_sum(v, keep_dims=[]):
         size = list(v.size())[:len(keep_dims)] + [-1, ]
         return v.view(size).sum(-1)
 
+
 def log_mean_exp(value, dim=None, keepdim=False):
     """Numerically stable implementation of the operation
 
@@ -78,6 +79,7 @@ def log_mean_exp(value, dim=None, keepdim=False):
     else:
         s = value.size(dim)
     return log_sum_exp(value, dim, keepdim) - math.log(s)
+
 
 def log_sum_exp(value, dim=None, keepdim=False):
     """Numerically stable implementation of the operation
@@ -102,25 +104,4 @@ def log_sum_exp(value, dim=None, keepdim=False):
         # returns a float for tensors, and `torch.log`
         # does not accept float input.
         return m + torch.log(torch.sum(torch.exp(value - m)))
-
-def wrap_2d_unitary(f):
-    @wraps(f)
-    def g(input, dim=-1, **kwds):
-        if dim == -1:
-            if input.dim() <= 2:
-                # 1d and 2d inputs work as expected
-                return f(input)
-            else:
-                input_size = input.size()
-                input_2d = input.contiguous().view(-1, input_size[-1])
-                return f(input_2d, **kwds).view(*input_size)
-        else:
-            tinput = input.transpose(dim, -1)
-            tinput_size = tinput.size()
-            tinput_2d = tinput.contiguous().view(-1, tinput_size[-1])
-            toutput = f(tinput_2d, **kwds).view(*tinput_size)
-            return toutput.transpose(dim, -1)
-    return g
-
-log_softmax = wrap_2d_unitary(F.log_softmax)
-softmax = wrap_2d_unitary(F.softmax)
+        

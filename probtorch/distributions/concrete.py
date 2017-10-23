@@ -1,4 +1,5 @@
-"""Implements the Concrete distribution (a relaxation of the one-hot Categorical)."""
+"""Implements the Concrete distribution (a relaxation of the one-hot
+Categorical)."""
 import math
 import torch
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ __all__ = [
     "Concrete"
 ]
 
+
 class Concrete(Distribution):
     r"""The Gumbel-Softmax relaxation of the discrete distribution, as described
     in [1] and [2].
@@ -21,23 +23,24 @@ class Concrete(Distribution):
         temperature(:obj:`Variable`): Temperature parameter.
         size(:obj:`torch.Size`, optional): Sample size.
 
-        log_pdf(bool): Controls whether probabilities are calculated according \
-        to the probability density function of the relaxation, or according to \
-        the probability mass function. Defaults to False.
+        log_pdf(bool): Controls whether probabilities are calculated \
+        according to the probability density function of the relaxation, \
+        or according to the probability mass function. Defaults to False.
 
     References:
-        [1] Chris J Maddison, Andriy Mnih, Yee Whye Teh. The concrete distribution:
-        A continuous relaxation of discrete random variables. ICLR 2017.
+        [1] Chris J Maddison, Andriy Mnih, Yee Whye Teh. The concrete
+        distribution: A continuous relaxation of discrete random variables.
+        ICLR 2017.
 
-        [2] Eric Jang, Shixiang Gu, Ben Poole. Categorical Reparameterization with
-        Gumbel-Softmax. ICLR 2017.
+        [2] Eric Jang, Shixiang Gu, Ben Poole. Categorical Reparameterization
+        with Gumbel-Softmax. ICLR 2017.
     """
 
     def __init__(self, log_weights, temperature, log_pdf=False):
         self._log_pdf = log_pdf
         self._temperature = temperature
         self._log_weights = log_weights
-        self._log_probs = F.log_softmax(self._log_weights, 
+        self._log_probs = F.log_softmax(self._log_weights,
                                         self._log_weights.dim() - 1)
         # TODO: we should just be able to call log_weights.type()
         # but apparently the variable API does not expose this
@@ -84,12 +87,13 @@ class Concrete(Distribution):
         if isinstance(self._temperature, Number):
             log_temp = math.log(self._temperature)
         else:
-            log_temp = torch.log(self._temperature)            
+            log_temp = torch.log(self._temperature)
         return (Variable(torch.lgamma(torch.Tensor([k]) - 1.)) +
                 (k - 1.) * log_temp +
                 torch.sum(self._log_weights, -1) +
                 torch.sum(log_value * (self._temperature - 1.0), -1) -
-                k * log_sum_exp(self._log_weights + log_value * self._temperature, -1))
+                k * log_sum_exp(self._log_weights +
+                                log_value * self._temperature, -1))
 
     def log_prob(self, value):
         if self._log_pdf:

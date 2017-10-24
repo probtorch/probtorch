@@ -80,7 +80,9 @@ class Laplace(Distribution):
             Entropy= log(2*sigma*e)
         """
         log = math.log if isinstance(self._b, Number) else torch.log
+
         return 1. + math.log(2.0) + log(self._b)
+
 
     def sample(self, *sizes):
         size = expanded_size(sizes, self._size)

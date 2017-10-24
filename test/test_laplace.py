@@ -33,19 +33,6 @@ class TestLaplace(TestCase):
                               b.data.numpy())
         self.assertEqual(res1, res2)
 
-    def test_logcdf(self):
-        mu = Variable(torch.randn(100))
-        b = torch.exp(Variable(torch.randn(100)))
-        value = Variable(torch.randn(100))
-        dist = Laplace(mu, b)
-
-        # test cdf
-        res1 = dist.log_cdf(value).data
-        res2 = laplace.logcdf(value.data.numpy(),
-                              mu.data.numpy(),
-                              b.data.numpy())
-        self.assertEqual(res1, res2)
-
     def test_sample(self):
         # TODO: this only works for scalar continuous distributions,
         # just to make sure things are ok until we write a better sample test
@@ -55,6 +42,7 @@ class TestLaplace(TestCase):
         samples = dist.sample(SAMPLE_COUNT).data
         _, p = kstest(samples.numpy(), 'laplace', (mu, b))
         assert p > 0.05
+
 
     def test_size(self):
         for dims in range(1, 4):

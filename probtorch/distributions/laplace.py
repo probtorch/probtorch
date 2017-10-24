@@ -86,3 +86,50 @@ class Laplace(Distribution):
         log_normalizer = log(2.0 * self._b)
         log_weight = -torch.abs(value - self._mu) / self._b
         return log_weight - log_normalizer
+
+
+    def entropy(self):
+        """
+        Using broadcasting rule it return the Shannon entropy (nats).
+
+        :return:
+            Entropy= log(2*sigma*e)
+        """
+        return 1. + torch.log(2.) + torch.log(self._b)
+
+    def cdf(self, x):
+        """
+        Cumulative distribution function.
+        Given the variable X, the CDF is:
+        CDF(x): = P[X <= x]
+
+        :param
+                x: The variable
+
+        :return:
+                CDF(x)
+        """
+        #
+
+        z = (x - self.mu) / self._b
+        return (0.5 + 0.5 * torch.sign(z) *
+                (1. - torch.exp(-torch.abs(z))))
+
+    def log_cdf(self, x):
+        """
+        Cumulative distribution function.
+        Given the variable X, the CDF is:
+        CDF(x): = P[X <= x]
+
+        :param
+                x: The variable
+
+        :return:
+                CDF(x)
+        """
+        #
+
+        z = (x - self.mu) / self._b
+        cdf = (0.5 + 0.5 * torch.sign(z) *
+               (1. - torch.exp(-torch.abs(z))))
+        return torch.log(cdf)

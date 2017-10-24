@@ -50,6 +50,7 @@ def partial_sum(v, keep_dims=[]):
     if len(keep_dims) == 0:
         return v.sum()
     else:
+        keep_dims = sorted(keep_dims)
         drop_dims = list(set(range(v.dim())) - set(keep_dims))
         result = v.permute(*(keep_dims + drop_dims))
         return result.contiguous().view(result.size()[:len(keep_dims)] + (-1,)).sum(-1)

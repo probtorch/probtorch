@@ -99,16 +99,6 @@ class Laplace(Distribution):
         return log_weight - log_normalizer
 
 
-    # def entropy(self):
-    #     """
-    #     Using broadcasting rule it return the Shannon entropy (nats).
-    #
-    #     :return:
-    #         Entropy= log(2*sigma*e)
-    #     """
-    #     log = math.log if isinstance(self._b, Number) else torch.log
-    #     return 1. + log(2.0 * self._b)
-
     def cdf(self, value):
         """
         Cumulative distribution function.

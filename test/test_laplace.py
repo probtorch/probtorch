@@ -33,6 +33,18 @@ class TestLaplace(TestCase):
                               b.data.numpy())
         self.assertEqual(res1, res2)
 
+    def test_entropy(self):
+        mu = Variable(torch.randn(100))
+        b = torch.exp(Variable(torch.randn(100)))
+        value = Variable(torch.randn(100))
+        dist = Laplace(mu, b)
+
+        # test cdf
+        res1 = dist.entropy.data
+        res2 = laplace.entropy(mu.data.numpy(),
+                              b.data.numpy())
+        self.assertEqual(res1, res2)
+
     def test_sample(self):
         # TODO: this only works for scalar continuous distributions,
         # just to make sure things are ok until we write a better sample test

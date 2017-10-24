@@ -70,6 +70,17 @@ class Laplace(Distribution):
     def variance(self):
         return 2.0 * self._b**2
 
+    @property
+    def entropy(self):
+        """
+        Using broadcasting rule it return the Shannon entropy (nats).
+
+        :return:
+            Entropy= log(2*sigma*e)
+        """
+        log = math.log if isinstance(self._b, Number) else torch.log
+        return 1. + log(2.0 * self._b)
+
     def sample(self, *sizes):
         size = expanded_size(sizes, self._size)
         uniform = Variable(torch.Tensor(*size)
@@ -88,14 +99,15 @@ class Laplace(Distribution):
         return log_weight - log_normalizer
 
 
-    def entropy(self):
-        """
-        Using broadcasting rule it return the Shannon entropy (nats).
-
-        :return:
-            Entropy= log(2*sigma*e)
-        """
-        return 1. + torch.log(2.) + torch.log(self._b)
+    # def entropy(self):
+    #     """
+    #     Using broadcasting rule it return the Shannon entropy (nats).
+    #
+    #     :return:
+    #         Entropy= log(2*sigma*e)
+    #     """
+    #     log = math.log if isinstance(self._b, Number) else torch.log
+    #     return 1. + log(2.0 * self._b)
 
     def cdf(self, value):
         """

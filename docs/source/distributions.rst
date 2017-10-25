@@ -38,3 +38,7 @@ Distributions
 
 .. autoclass:: probtorch.distributions.Logistic
 
+:hidden:`Kumaraswamy`
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: probtorch.distributions.Kumaraswamy

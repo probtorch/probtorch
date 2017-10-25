@@ -6,3 +6,4 @@ from .uniform import *
 from .exponential import *
 from .laplace import *
 from .logistic import *
+from .kumaraswamy import *

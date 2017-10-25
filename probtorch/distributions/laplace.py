@@ -35,6 +35,7 @@ class Laplace(Distribution):
         mean(:obj:`Variable`): Mean (mu).
         mode(:obj:`Variable`): Mode (mu).
         variance(:obj:`Variable`): Variance (equal to 2b**2)
+        Entropy= log(2*sigma*e): Using broadcasting rule it return the Shannon entropy
     """
 
     def __init__(self, mu, b):
@@ -73,14 +74,7 @@ class Laplace(Distribution):
 
     @property
     def entropy(self):
-        """
-        Using broadcasting rule it return the Shannon entropy (nats).
-
-        :return:
-            Entropy= log(2*sigma*e)
-        """
         log = math.log if isinstance(self._b, Number) else torch.log
-
         return 1. + math.log(2.0) + log(self._b)
 
 
@@ -103,19 +97,8 @@ class Laplace(Distribution):
 
 
     def cdf(self, value):
-        """
-        Cumulative distribution function.
-        Given the variable X, the CDF is:
-        CDF(x): = P[X <= x]
-
-        :param
-                x: The variable
-
-        :return:
-                CDF(x)
-        """
-        #
-
+        
+        # Cumulative distribution function. Given the variable X, the CDF is: CDF(x): = P[X <= x]
         z = (value - self.mu) / self._b
         return (0.5 + 0.5 * torch.sign(z) *
                 (1. - torch.exp(-torch.abs(z))))

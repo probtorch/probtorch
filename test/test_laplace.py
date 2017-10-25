@@ -39,7 +39,7 @@ class TestLaplace(TestCase):
         value = Variable(torch.randn(100))
         dist = Laplace(mu, b)
 
-        # test cdf
+        # test entropy
         res1 = dist.entropy.data
         res2 = laplace.entropy(mu.data.numpy(),
                               b.data.numpy())

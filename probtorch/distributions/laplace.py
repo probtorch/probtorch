@@ -34,8 +34,8 @@ class Laplace(Distribution):
     Attributes:
         mean(:obj:`Variable`): Mean (mu).
         mode(:obj:`Variable`): Mode (mu).
-        variance(:obj:`Variable`): Variance (equal to 2b**2)
-        Entropy= log(2*sigma*e): Using broadcasting rule it return the Shannon entropy
+        variance(:obj:`Variable`): Variance (equals to 2b**2)
+        entropy(:obj:`Variable`): Using broadcasting rule it return the Shannon entropy (equals to log(2*sigma*e))
     """
 
     def __init__(self, mu, b):

@@ -7,6 +7,16 @@ Util
 .. automodule:: probtorch.util
 .. currentmodule:: probtorch.util
 
+:hidden:`broadcast_size`
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: probtorch.util.broadcast_size
+
+:hidden:`expanded_size`
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: probtorch.util.expanded_size
+
 :hidden:`partial_sum`
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -21,13 +31,3 @@ Util
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: probtorch.util.log_mean_exp
-
-:hidden:`log_softmax`
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: probtorch.util.log_softmax
-
-:hidden:`softmax`
-~~~~~~~~~~~~~~~~~~~
-
-.. autofunction:: probtorch.util.softmax

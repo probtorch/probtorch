@@ -13,7 +13,7 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=1.0):
        \right]
        + \alpha E_{q(z | x)}\left[ \log \frac{q(y, z| x)}{q(z | x)} \right]
 
-    Where the sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
+    The sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
 
         :math:`x`: The set of conditioned nodes that are present in `p` but
         are not present in `q`.
@@ -26,8 +26,8 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=1.0):
     :math:`q(z| x,y)`.
 
     Arguments:
-        q(:obj:Trace): The encoder trace.
-        p(:obj:Trace): The decoder trace.
+        q(:obj:`Trace`): The encoder trace.
+        p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
         alpha(float, default 0.1): Coefficient for the ML term.
@@ -48,7 +48,7 @@ def log_like(q, p, sample_dim=None, batch_dim=None, log_weights=None):
        \simeq \frac{1}{S} \frac{1}{B} \sum_{s=1}^S \sum_{b=1}^B
               \log p(x^{(b)} | z^{(s,b)}, y^{(b)})
 
-    Where the sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
+    The sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
 
         :math:`x`: The set of conditioned nodes that are present in `p` but
         are not present in `q`.
@@ -61,11 +61,11 @@ def log_like(q, p, sample_dim=None, batch_dim=None, log_weights=None):
     :math:`q(z| x,y)`.
 
     Arguments:
-        q(:obj:Trace): The encoder trace.
-        p(:obj:Trace): The decoder trace.
+        q(:obj:`Trace`): The encoder trace.
+        p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
-        log_weights(:obj:Variable or number, optional): Log weights for
+        log_weights(:obj:`Variable` or number, optional): Log weights for
             samples. Calculated when not specified.
     """
     x = [n for n in p.conditioned() if n not in q]
@@ -92,7 +92,7 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None):
        \left[ \log \frac{q(z^{(s,b)} | x^{(b)}, y^{(b)})}
                         {p(z^{(s,b)})} \right]
 
-    Where the sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
+    The sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
 
         :math:`x`: The set of conditioned nodes that are present in `p` but
         are not present in `q`.
@@ -105,11 +105,11 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None):
     :math:`q(z| x,y)`.
 
     Arguments:
-        q(:obj:Trace): The encoder trace.
-        p(:obj:Trace): The decoder trace.
+        q(:obj:`Trace`): The encoder trace.
+        p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
-        log_weights(:obj:Variable or number, optional): Log weights for
+        log_weights(:obj:`Variable` or number, optional): Log weights for
             samples. Calculated when not specified.
     """
     z = list(q.sampled())
@@ -138,7 +138,7 @@ def ml(q, sample_dim=None, batch_dim=None):
        \left[ \log \frac{q( y^{(b)}, z^{(s,b)} | x^{(b)})}
                         {q(z^{(s,b)} | x^{(b)})} \right]
 
-    Where the sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
+    The sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
 
         :math:`x`: The set of conditioned nodes that are present in `p` but
         are not present in `q`.
@@ -148,8 +148,8 @@ def ml(q, sample_dim=None, batch_dim=None):
         :math:`z`: The set of sampled nodes in `q`.
 
     Arguments:
-        q(:obj:Trace): The encoder trace.
-        p(:obj:Trace): The decoder trace.
+        q(:obj:`Trace`): The encoder trace.
+        p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
     """

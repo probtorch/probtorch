@@ -26,7 +26,7 @@ class Stochastic(object):
 
 class RandomVariable(Stochastic):
     """Random variables wrap a PyTorch Variable to associate a distribution
-    and log probability.
+    and a log probability density or mass.
 
     Parameters:
         dist(:obj:`Distribution`): The distribution of the variable.
@@ -62,8 +62,8 @@ class RandomVariable(Stochastic):
 
 
 class Factor(Stochastic):
-    """A Factor wraps a log probability without an associated value. A Factor
-    only provides a log_prob attribute. The value attribute is `None`.
+    """A Factor wraps a log probability density or mass without associating a
+    value. The value attribute of a Factor node is `None`.
 
     Parameters:
         log_prob(:obj:`Variable`): The log-probability.
@@ -86,8 +86,8 @@ class Factor(Stochastic):
 
 
 class Loss(Stochastic):
-    """A Loss associates a log probability with a variable of the form
-    `-loss(value, target)`.
+    """A Loss associates a log probability of the form `-loss(value, target)`.
+    The value attribute of a Loss node is `None`
 
     Parameters:
         loss(function): A PyTorch loss function.
@@ -117,14 +117,14 @@ class Loss(Stochastic):
 
 
 class Trace(MutableMapping):
-    """A dictionary-like container for stochastic variables. Entries are
-    ordered and can be retrieved by key, which by convention is a string,
-    or by index. A Trace is write-once, in the sense that an entry cannot
-    be removed or reassigned.
+    """A dictionary-like container for stochastic nodes. Entries are ordered
+    and can be retrieved by key, which by convention is a string, or by index.
+    A Trace is write-once, in the sense that an entry cannot be removed or
+    reassigned.
     """
 
     def __init__(self):
-        # TODO Python 3 dicts are ordered as of 3.6,
+        # TODO: Python 3 dicts are ordered as of 3.6,
         # so could we use a normal dict instead?
         self._nodes = OrderedDict()
         self._counters = {}
@@ -229,6 +229,49 @@ class Trace(MutableMapping):
             self[name] = node
         return value
 
+    def factors(self):
+        """Returns a generator over Factor nodes"""
+        for name in self._nodes:
+            if isinstance(self._nodes[name], Factor):
+                yield name
+
+    def losses(self):
+        """Returns a generator over Loss nodes"""
+        for name in self._nodes:
+            if isinstance(self._nodes[name], Loss):
+                yield name
+
+    def variables(self):
+        """Returns a generator over RandomVariable nodes"""
+        for name in self._nodes:
+            if isinstance(self._nodes[name], RandomVariable):
+                yield name
+
+    def observed(self):
+        """Returns a generator over RandomVariable nodes"""
+        for name in self._nodes:
+            node = self._nodes[name]
+            if isinstance(node, RandomVariable) and node.observed:
+                yield name
+
+    def sampled(self):
+        """Returns a generator over RandomVariable nodes"""
+        for name in self._nodes:
+            node = self._nodes[name]
+            if isinstance(node, RandomVariable) and not node.observed:
+                yield name
+
+    def conditioned(self):
+        """Returns a generator over all conditioned nodes, consisting of
+        observed RandomVariable nodes, Factor nodes and Loss nodes.
+        """
+        for name in self._nodes:
+            node = self._nodes[name]
+            if not isinstance(node, RandomVariable):
+                yield name
+            elif node.observed:
+                yield name
+
     # TODO: we need to automate this, and add docstring magic
     def normal(self, mu, sigma=None, tau=None,
                name=None, value=None, **kwargs):
@@ -247,3 +290,4 @@ class Trace(MutableMapping):
         """Creates a new Uniform-distributed RandomVariable node."""
         return self.variable(distributions.Uniform, lower=lower, upper=upper,
                              name=name, value=value, **kwargs)
+

@@ -13,8 +13,8 @@ class TestKumaraswamy(TestCase):
 
     def test_logprob(self):
         # Beta(1,b) = Kumaraswamy(1,b)
-        a = torch.exp(Variable(torch.randn(10)))
-        b = torch.ones_like(a)
+        b = torch.exp(Variable(torch.randn(10)))
+        a = Variable(torch.ones(10))
         value = Variable(torch.randn(10))
         dist = Kumaraswamy(a, b)
 
@@ -27,8 +27,8 @@ class TestKumaraswamy(TestCase):
         self.assertEqual(res1, res2)
 
         # Beta(a,1) = Kumaraswamy(a,1)
-        b = torch.exp(Variable(torch.randn(100)))
-        a = torch.ones_like(b)
+        a = torch.exp(Variable(torch.randn(100)))
+        b = Variable(torch.ones(100))
         value = Variable(torch.randn(100))
         dist = Kumaraswamy(a, b)
 
@@ -38,6 +38,62 @@ class TestKumaraswamy(TestCase):
                            a.data.numpy(),
                            b.data.numpy())
         res2[np.isinf(res2)] = dist.LOG_0
+        self.assertEqual(res1, res2)
+
+    def test_cdf(self):
+        # Beta(1,b) = Kumaraswamy(1,b)
+        b = torch.exp(Variable(torch.randn(10)))
+        a = Variable(torch.ones(10))
+        value = Variable(torch.randn(10))
+        dist = Kumaraswamy(a, b)
+
+        # test cdf
+        res1 = dist.cdf(value).data
+        res2 = beta.cdf(value.data.numpy(),
+                        a.data.numpy(),
+                        b.data.numpy())
+        res2[np.isinf(res2)] = dist.LOG_0
+        self.assertEqual(res1, res2)
+
+        # Beta(a,1) = Kumaraswamy(a,1)
+        a = torch.exp(Variable(torch.randn(100)))
+        b = Variable(torch.ones(100))
+        value = Variable(torch.randn(100))
+        dist = Kumaraswamy(a, b)
+
+        # test cdf
+        res1 = dist.cdf(value).data
+        res2 = beta.cdf(value.data.numpy(),
+                        a.data.numpy(),
+                        b.data.numpy())
+        res2[np.isinf(res2)] = dist.LOG_0
+        self.assertEqual(res1, res2)
+
+    def test_inv_cdf(self):
+        # Beta(1,b) = Kumaraswamy(1,b)
+        b = torch.exp(Variable(torch.randn(10)))
+        a = Variable(torch.ones(10))
+        value = Variable(torch.rand(10))
+        dist = Kumaraswamy(a, b)
+
+        # test inv_cdf
+        res1 = dist.inv_cdf(value).data
+        res2 = beta.ppf(value.data.numpy(),
+                        a.data.numpy(),
+                        b.data.numpy())
+        self.assertEqual(res1, res2)
+
+        # Beta(a,1) = Kumaraswamy(a,1)
+        a = torch.exp(Variable(torch.randn(100)))
+        b = Variable(torch.ones(100))
+        value = Variable(torch.rand(100))
+        dist = Kumaraswamy(a, b)
+
+        # test inv_cdf
+        res1 = dist.inv_cdf(value).data
+        res2 = beta.ppf(value.data.numpy(),
+                        a.data.numpy(),
+                        b.data.numpy())
         self.assertEqual(res1, res2)
 
     def test_sample(self):

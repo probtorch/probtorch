@@ -64,19 +64,17 @@ class Kumaraswamy(Distribution):
                    lgamma(1 + 1.0 / self._a + self._b))
 
     def cdf(self, value):
-        return 1 - torch.pow(1 - torch.pow(value, self._a), self._b - 1)
+        return 1.0 - (1.0 - torch.clamp(value, 0.0, 1.0)**self._a)**self._b
 
     def inv_cdf(self, value):
-        return torch.pow(1 - torch.pow(1 - value, 1.0 / self._b),
-                         1.0 / self._a)
+        return (1 - (1 - value)**(1.0 / self._b))**(1.0 / self._a)
 
     def sample(self, *sizes):
         size = expanded_size(sizes, self._size)
         uniform = Variable(torch.Tensor(*size)
                            .type(self._type)
-                           .uniform_(self.EPS, 1.0 - self.EPS))
-        return torch.pow(1.0 - torch.pow(1 - uniform, 1.0 / self._b),
-                         1 / self._a)
+                           .uniform_(0.0, 1.0))
+        return self.inv_cdf(uniform)
 
     def log_prob(self, value):
         log = math.log if isinstance(self._b, Number) else torch.log
@@ -85,6 +83,6 @@ class Kumaraswamy(Distribution):
         log_prob = mask * (log(self._a) + log(self._b) +
                            (self._a - 1) * torch.log(valid_value) +
                            (self._b - 1) *
-                           torch.log1p(-torch.pow(valid_value, self._a)))
+                           torch.log1p(-valid_value ** self._a))
         log_prob_0 = (1.0 - mask) * self.LOG_0
         return log_prob + log_prob_0

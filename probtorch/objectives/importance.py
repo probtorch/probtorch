@@ -1,3 +1,4 @@
+from numbers import Number
 from probtorch.util import sum_log_prob, log_mean_exp
 
 
@@ -41,5 +42,8 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
     if sample_dim is None:
         return log_pq.mean() + alpha * log_qy.mean()
     else:
-        return (log_mean_exp(log_pq, 0).mean() +
-                alpha * log_mean_exp(log_qy, 0).mean())
+        if isinstance(log_qy, Number):
+            return log_mean_exp(log_pq, 0).mean()
+        else:
+            return (log_mean_exp(log_pq, 0).mean() +
+                    alpha * log_mean_exp(log_qy, 0).mean())

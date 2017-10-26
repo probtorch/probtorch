@@ -31,3 +31,8 @@ Util
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: probtorch.util.log_mean_exp
+
+:hidden:`sum_log_prob`
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: probtorch.util.sum_log_prob

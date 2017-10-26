@@ -8,7 +8,9 @@ __all__ = ['broadcast_size',
            'batch_sum',
            'partial_sum',
            'log_sum_exp',
-           'log_mean_exp']
+           'log_mean_exp',
+           'sum_log_prob']
+
 
 def broadcast_size(a, b):
     """Returns the broadcasted size given two Tensors or Variables"""
@@ -27,9 +29,11 @@ def broadcast_size(a, b):
             c_size += (a,)
         else:
             if a != b:
-                raise ValueError("Broadcasting dimensions must be either equal or 1.")
+                raise ValueError("Broadcasting dimensions must be either equal"
+                                 "or 1.")
             c_size += (a,)
     return c_size
+
 
 def expanded_size(expand_size, orig_size):
     """Returns the expanded size given two sizes"""
@@ -41,19 +45,24 @@ def expanded_size(expand_size, orig_size):
     else:
         return expand_size + orig_size
 
+
 def batch_sum(v, sample_dim=None, batch_dim=None):
     keep_dims = [d for d in [sample_dim, batch_dim] if d is not None]
     return partial_sum(v, keep_dims=keep_dims)
 
+
 def partial_sum(v, keep_dims=[]):
-    """Sums variable or tensor along all dimensions except those in keep_dims"""
+    """Sums variable or tensor along all dimensions except those specified
+    in `keep_dims`"""
     if len(keep_dims) == 0:
         return v.sum()
     else:
         keep_dims = sorted(keep_dims)
         drop_dims = list(set(range(v.dim())) - set(keep_dims))
         result = v.permute(*(keep_dims + drop_dims))
-        return result.contiguous().view(result.size()[:len(keep_dims)] + (-1,)).sum(-1)
+        size = result.size()[:len(keep_dims)] + (-1,)
+        return result.contiguous().view(size).sum(-1)
+
 
 def log_mean_exp(value, dim=None, keepdim=False):
     """Numerically stable implementation of the operation
@@ -87,3 +96,24 @@ def log_sum_exp(value, dim=None, keepdim=False):
             return m + math.log(sum_exp)
         else:
             return m + torch.log(sum_exp)
+
+
+def sum_log_prob(p, sample_dim=None, batch_dim=None, nodes=None):
+    """Sums log probabilities over nodes, optionally retaining the sample
+    and batch dimensions.
+
+    Arguments:
+        p(:obj:`Trace`): The Trace object.
+        sample_dim(int): The dimension that enumerates samples.
+        batch_dim(int): The dimension that enumerates batch items.
+        nodes(iterable, optional): The subset of nodes to sum over. When \
+          unspecified, the sum over all nodes is returned.
+    """
+    if nodes is None:
+        nodes = p
+    log_prob = 0.0
+    for n in nodes:
+        if n in p:
+            log_p = batch_sum(p[n].log_prob, sample_dim, batch_dim)
+            log_prob = log_prob + log_p
+    return log_prob

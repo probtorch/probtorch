@@ -34,7 +34,7 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
         batch_dim(int, optional): The dimension containing batch items.
         alpha(float, default 0.1): Coefficient for the ML term.
     """
-    z = [n for n in q.sampled() if n not in p]
+    z = [n for n in q.sampled() if n in p]
     log_qz = sum_log_prob(q, sample_dim, batch_dim, z)
     log_p = sum_log_prob(p, sample_dim, batch_dim)
     log_pq = (log_p - log_qz)

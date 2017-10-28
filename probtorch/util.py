@@ -8,8 +8,7 @@ __all__ = ['broadcast_size',
            'batch_sum',
            'partial_sum',
            'log_sum_exp',
-           'log_mean_exp',
-           'sum_log_prob']
+           'log_mean_exp']
 
 
 def broadcast_size(a, b):

@@ -267,9 +267,7 @@ class Trace(MutableMapping):
         """
         for name in self._nodes:
             node = self._nodes[name]
-            if not isinstance(node, RandomVariable):
-                yield name
-            elif node.observed:
+            if not isinstance(node, RandomVariable) or node.observed:
                 yield name
 
     # TODO: we need to automate this, and add docstring magic

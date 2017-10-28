@@ -1,44 +1,49 @@
-from probtorch.util import batch_sum, log_mean_exp
+from numbers import Number
+from probtorch.util import sum_log_prob, log_mean_exp
 
-def elbo(q, p, alpha=0.0, sample_dim=None, batch_dim=None):
-    r"""Calculates an importance weighted estimate of the evidence
-    lower bound.
 
-    The expectation in this estimate is calculated with respect to
-    unobserved variables in the encoder trace.
+def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
+    r"""Calculates an importance weighted Monte Carlo estimate of the
+    semi-supervised evidence lower bound (ELBO)
 
-    When `batch_dim` is specified, this function returns the mean
-    of the estimates for each item in the batch.
+    .. math:: \frac{1}{B} \sum_{b=1}^B
+              \log \left[
+                \frac{1}{S} \sum_{s=1}^S
+                \frac{p(x^{(b)}, y^{(b)}, z^{(s,b)})}{q(z^{(s,b)} | x^{(b)})}
+              \right]
+              + \frac{\alpha}{B} \sum_{b=1}^B
+              \log \left[
+                \frac{1}{S} \sum_{s=1}^S
+                \frac{q(y^{(b)}, z^{(s,b)} | x^{(b)})}
+                     {q(z^{(s,b)} | x^{(b)})}
+              \right]
 
-    When `sample_dim` is specified, this function computes an
-    importance sampling estimate for each item.
+    The sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
+
+        :math:`x`: The set of conditioned nodes that are present in `p` but
+        are not present in `q`.
+
+        :math:`y`: The set of conditioned nodes in `q`.
+
+        :math:`z`: The set of sampled nodes in `q`.
+
+    Arguments:
+        q(:obj:`Trace`): The encoder trace.
+        p(:obj:`Trace`): The decoder trace.
+        sample_dim(int, optional): The dimension containing individual samples.
+        batch_dim(int, optional): The dimension containing batch items.
+        alpha(float, default 0.1): Coefficient for the ML term.
     """
-    log_P = 0.0
-    log_Q = 0.0
-    log_W = None
-    for v in p:
-        log_p = batch_sum(p[v].log_prob,
-                          sample_dim=sample_dim,
-                          batch_dim=batch_dim)
-        log_P = log_P + log_p
-    for v in q:
-        if (v in p):
-            log_q = batch_sum(q[v].log_prob,
-                              sample_dim=sample_dim,
-                              batch_dim=batch_dim)
-            log_Q = log_Q + log_q
-        if q[v].observed:
-            if log_W is None:
-                log_W = 0.0
-            log_W = log_W + log_q
+    z = [n for n in q.sampled() if n in p]
+    log_qz = sum_log_prob(q, sample_dim, batch_dim, z)
+    log_p = sum_log_prob(p, sample_dim, batch_dim)
+    log_pq = (log_p - log_qz)
+    log_qy = sum_log_prob(q, sample_dim, batch_dim, q.conditioned())
     if sample_dim is None:
-        if log_W is None:
-            return (log_P - log_Q).mean()
-        else:
-            return (log_P - log_Q + (1.0 + alpha) * log_W).mean()
+        return log_pq.mean() + alpha * log_qy.mean()
     else:
-        if log_W is None:
-            return log_mean_exp(log_P - log_Q, 0).mean()
+        if isinstance(log_qy, Number):
+            return log_mean_exp(log_pq, 0).mean()
         else:
-            return log_mean_exp(log_P - log_Q +
-                                (1.0 + alpha) * log_W, 0).mean()
+            return (log_mean_exp(log_pq, 0).mean() +
+                    alpha * log_mean_exp(log_qy, 0).mean())

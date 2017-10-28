@@ -8,12 +8,19 @@ Objectives
 .. automodule:: probtorch.objectives
 .. currentmodule:: probtorch.objectives
 
-:hidden:`montecarlo`
-~~~~~~~~~~~~~~~~~~~~
+`Monte Carlo`
+~~~~~~~~~~~~~~
 
 .. autofunction:: probtorch.objectives.montecarlo.elbo
 
-:hidden:`importance`
-~~~~~~~~~~~~~~~~~~~~~
+.. autofunction:: probtorch.objectives.montecarlo.log_like
+
+.. autofunction:: probtorch.objectives.montecarlo.kl
+
+.. autofunction:: probtorch.objectives.montecarlo.ml
+
+
+`Importance Weighted`
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: probtorch.objectives.importance.elbo

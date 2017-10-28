@@ -40,10 +40,9 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
     log_qy = q.log_joint(sample_dim, batch_dim, q.conditioned())
     log_pq = (log_pxyz - log_qz)
     if sample_dim is None:
-        return log_pq.mean() + alpha * log_qy.mean()
+        return log_pq.sum() + alpha * log_qy.sum()
     else:
         if isinstance(log_qy, Number):
-            return log_mean_exp(log_pq, 0).mean()
+            return log_mean_exp(log_pq, 0).sum()
         else:
-            return (log_mean_exp(log_pq, 0).mean() +
-                    alpha * log_mean_exp(log_qy, 0).mean())
+            return (log_mean_exp(log_pq, 0) + alpha * log_mean_exp(log_qy, 0)).sum()

@@ -72,8 +72,7 @@ def log_like(q, p, sample_dim=None, batch_dim=None, log_weights=None):
         return log_px.mean()
     else:
         if log_weights is None:
-            log_weights = q.log_weights(q.conditioned(),
-                                        sample_dim, batch_dim)
+            log_weights = q.log_joint(sample_dim, batch_dim, q.conditioned())
         if isinstance(log_weights, Number):
             return log_px.mean()
         else:

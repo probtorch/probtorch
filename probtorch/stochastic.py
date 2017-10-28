@@ -309,4 +309,3 @@ class Trace(MutableMapping):
         """Creates a new Uniform-distributed RandomVariable node."""
         return self.variable(distributions.Uniform, lower=lower, upper=upper,
                              name=name, value=value, **kwargs)
-

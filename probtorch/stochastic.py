@@ -87,8 +87,8 @@ class Factor(Stochastic):
 
 
 class Loss(Stochastic):
-    """A Loss associates a log probability of the form `-loss(value, target)`.
-    The value attribute of a Loss node is `None`
+    """A Loss associates a log probability of the form `-loss(value, target)`,
+    with the provided value.
 
     Parameters:
         loss(function): A PyTorch loss function.

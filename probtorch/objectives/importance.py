@@ -1,5 +1,5 @@
 from numbers import Number
-from probtorch.util import sum_log_prob, log_mean_exp
+from probtorch.util import log_mean_exp
 
 
 def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
@@ -35,10 +35,10 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
         alpha(float, default 0.1): Coefficient for the ML term.
     """
     z = [n for n in q.sampled() if n in p]
-    log_qz = sum_log_prob(q, sample_dim, batch_dim, z)
-    log_p = sum_log_prob(p, sample_dim, batch_dim)
-    log_pq = (log_p - log_qz)
-    log_qy = sum_log_prob(q, sample_dim, batch_dim, q.conditioned())
+    log_pxyz = p.log_joint(sample_dim, batch_dim)
+    log_qz = q.log_joint(z, sample_dim, batch_dim)
+    log_qy = q.log_joint(q.conditioned(), sample_dim, batch_dim)
+    log_pq = (log_pxyz - log_qz)
     if sample_dim is None:
         return log_pq.mean() + alpha * log_qy.mean()
     else:

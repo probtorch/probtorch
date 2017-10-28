@@ -36,8 +36,8 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
     """
     z = [n for n in q.sampled() if n in p]
     log_pxyz = p.log_joint(sample_dim, batch_dim)
-    log_qz = q.log_joint(z, sample_dim, batch_dim)
-    log_qy = q.log_joint(q.conditioned(), sample_dim, batch_dim)
+    log_qz = q.log_joint(sample_dim, batch_dim, z)
+    log_qy = q.log_joint(sample_dim, batch_dim, q.conditioned())
     log_pq = (log_pxyz - log_qz)
     if sample_dim is None:
         return log_pq.mean() + alpha * log_qy.mean()

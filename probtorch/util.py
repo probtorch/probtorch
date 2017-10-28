@@ -96,24 +96,3 @@ def log_sum_exp(value, dim=None, keepdim=False):
             return m + math.log(sum_exp)
         else:
             return m + torch.log(sum_exp)
-
-
-def sum_log_prob(p, sample_dim=None, batch_dim=None, nodes=None):
-    """Sums log probabilities over nodes, optionally retaining the sample
-    and batch dimensions.
-
-    Arguments:
-        p(:obj:`Trace`): The Trace object.
-        sample_dim(int): The dimension that enumerates samples.
-        batch_dim(int): The dimension that enumerates batch items.
-        nodes(iterable, optional): The subset of nodes to sum over. When \
-          unspecified, the sum over all nodes is returned.
-    """
-    if nodes is None:
-        nodes = p
-    log_prob = 0.0
-    for n in nodes:
-        if n in p:
-            log_p = batch_sum(p[n].log_prob, sample_dim, batch_dim)
-            log_prob = log_prob + log_p
-    return log_prob

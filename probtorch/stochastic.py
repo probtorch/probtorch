@@ -1,5 +1,6 @@
 from collections import OrderedDict, MutableMapping
 from . import distributions
+from .util import batch_sum
 import abc
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
@@ -269,6 +270,26 @@ class Trace(MutableMapping):
             node = self._nodes[name]
             if not isinstance(node, RandomVariable) or node.observed:
                 yield name
+
+    def log_joint(self, nodes=None, sample_dim=None, batch_dim=None):
+        """Returns the log joint probability, optionally for a subset of nodes.
+
+        Arguments:
+            nodes(iterable, optional): The subset of nodes to sum over. When \
+            unspecified, the sum over all nodes is returned.
+            sample_dim(int): The dimension that enumerates samples.
+            batch_dim(int): The dimension that enumerates batch items.
+        """
+        if nodes is None:
+            nodes = self._nodes
+        log_prob = 0.0
+        for n in nodes:
+            if n in self._nodes:
+                log_p = batch_sum(self._nodes[n].log_prob,
+                                  sample_dim,
+                                  batch_dim)
+                log_prob = log_prob + log_p
+        return log_prob
 
     # TODO: we need to automate this, and add docstring magic
     def normal(self, mu, sigma=None, tau=None,

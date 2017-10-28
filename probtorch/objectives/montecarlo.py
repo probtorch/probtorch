@@ -1,6 +1,5 @@
 from numbers import Number
 from torch.nn.functional import softmax
-from probtorch.util import sum_log_prob
 
 
 def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=1.0):
@@ -74,8 +73,8 @@ def log_like(q, p, sample_dim=None, batch_dim=None, log_weights=None):
         return log_px.mean()
     else:
         if log_weights is None:
-            log_weights = sum_log_prob(q, sample_dim, batch_dim,
-                                       q.conditioned())
+            log_weights = q.log_weights(q.conditioned(), 
+                                        sample_dim, batch_dim)
         if isinstance(log_weights, Number):
             return log_px.mean()
         else:

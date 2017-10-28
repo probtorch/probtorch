@@ -149,8 +149,7 @@ def ml(q, sample_dim=None, batch_dim=None):
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
     """
-    log_qy = q.log_prob(q.conditioned(),
-                        sample_dim, batch_dim)
+    log_qy = q.log_joint(sample_dim, batch_dim, q.conditioned())
     if isinstance(log_qy, Number):
         return log_qy
     else:

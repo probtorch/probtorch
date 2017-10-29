@@ -1,6 +1,8 @@
 from collections import OrderedDict, MutableMapping
 from . import distributions
+from .distributions.distribution import Distribution
 from .util import batch_sum
+import inspect
 import abc
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
@@ -291,22 +293,51 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
-    # TODO: we need to automate this, and add docstring magic
-    def normal(self, mu, sigma=None, tau=None,
-               name=None, value=None, **kwargs):
-        """Creates a new Normal-distributed RandomVariable node."""
-        return self.variable(distributions.Normal, mu, sigma=sigma, tau=tau,
-                             name=name, value=value, **kwargs)
 
-    def concrete(self, log_weights, temp,
-                 name=None, value=None, **kwargs):
-        """Creates a new Concrete-distributed RandomVariable node."""
-        return self.variable(distributions.Concrete, log_weights, temp,
-                             name=name, value=value, **kwargs)
+def _autogen_trace_methods():
+    def param_doc(doc):
+        keep = False
+        doc_body = ["Arguments:"]
+        for line in doc.split('\n'):
+            if keep and not line.split():
+                break
+            elif not keep and (line.strip().lower() == 'parameters:'):
+                keep = True
+            elif keep:
+                doc_body.append("    " + line.strip())
+        return "\n".join(doc_body) + "\n"
 
-    def uniform(self, lower=0.0, upper=1.0,
-                name=None, value=None, **kwargs):
-        """Creates a new Uniform-distributed RandomVariable node."""
-        return self.variable(distributions.Uniform, lower=lower, upper=upper,
-                             name=name, value=value, **kwargs)
+    for name, obj in inspect.getmembers(distributions):
+        if hasattr(obj, "__bases__") and Distribution in obj.__bases__:
+            f_name = name.lower()
+            doc_head = ("Creates a %s-distributed random variable node and "
+                        "returns its value.\n\nFor more information, refer to the "
+                        ":class:`~probtorch.distributions.%s` distribution.\n\n" % (f_name, name))
+            doc_body = param_doc(obj.__doc__)
+            doc_foot = (
+                "    value(:obj:`Variable`, optional): Value of the RandomVariable instance. "
+                "When specified, the variable is observed. When not specified a value is "
+                "sampled and the variable is not observed.\n"
+                "    name(string, optional): The name for the RandomVariable. When not "
+                "specified, a unique name is dynamically generated.")
+            doc = doc_head + doc_body + doc_foot
+
+            asp = inspect.getfullargspec(obj.__init__)
+            arg_split = -len(asp.defaults) if asp.defaults else None
+            args = ', '.join(asp.args[:arg_split])
+            if arg_split:
+                pairs = zip(asp.args[arg_split:], asp.defaults)
+                kwargs = ', '.join(['%s=%s' % (n, v) for n, v in pairs])
+                args = args + ', ' + kwargs
+            env = {}
+            exec("""def f({0}, name=None, value=None):
+                        self.variable(obj, {0}, name=name, value=value)
+                 """.format(args), env)
+            f = env['f']
+            f.__name__ = f_name
+            f.__doc__ = doc
+            setattr(Trace, f_name, f)
+
+
+_autogen_trace_methods()
 

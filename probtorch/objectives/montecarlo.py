@@ -69,15 +69,15 @@ def log_like(q, p, sample_dim=None, batch_dim=None, log_weights=None):
     x = [n for n in p.conditioned() if n not in q]
     log_px = p.log_joint(sample_dim, batch_dim, x)
     if sample_dim is None:
-        return log_px.sum()
+        return log_px.mean()
     else:
         if log_weights is None:
             log_weights = q.log_joint(sample_dim, batch_dim, q.conditioned())
         if isinstance(log_weights, Number):
-            return log_px.sum()
+            return log_px.mean()
         else:
             weights = softmax(log_weights, 0)
-            return (weights * log_px).sum()
+            return (weights * log_px).sum(0).mean()
 
 
 def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None):
@@ -114,15 +114,15 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None):
     log_qz = q.log_joint(sample_dim, batch_dim, z)
     log_qp = (log_qz - log_pz)
     if sample_dim is None:
-        return log_qp.sum()
+        return log_qp.mean()
     else:
         if log_weights is None:
             log_weights = q.log_joint(sample_dim, batch_dim, q.conditioned())
         if isinstance(log_weights, Number):
-            return log_qp.sum()
+            return log_qp.mean()
         else:
             weights = softmax(log_weights, 0)
-            return (weights * log_qp).sum()
+            return (weights * log_qp).sum(0).mean()
 
 
 def ml(q, sample_dim=None, batch_dim=None):
@@ -153,4 +153,4 @@ def ml(q, sample_dim=None, batch_dim=None):
     if isinstance(log_qy, Number):
         return log_qy
     else:
-        return log_qy.sum()
+        return log_qy.mean()

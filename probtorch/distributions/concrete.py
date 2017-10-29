@@ -16,7 +16,7 @@ class Concrete(Distribution):
     r"""The Gumbel-Softmax relaxation of the discrete distribution, as described
     in [1] and [2].
 
-    Arguments:
+    Parameters:
         log_weights(:obj:`Variable`): Unnormalized log probabilities.
 
         temperature(:obj:`Variable`): Temperature parameter.

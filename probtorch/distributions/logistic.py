@@ -34,7 +34,6 @@ class Logistic(Distribution):
     Parameters:
         mu(:obj:`Variable`): Mean.
         s(:obj:`Variable`): Scale (s>0).
-        size(tuple, optional): Sample size.
 
     Attributes:
         mean(:obj:`Variable`): Mean (mu).

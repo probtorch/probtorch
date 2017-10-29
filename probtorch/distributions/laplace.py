@@ -28,7 +28,6 @@ class Laplace(Distribution):
     Parameters:
         mu(:obj:`Variable`): Mean.
         b(:obj:`Variable`): Scale (b > 0).
-        size(tuple, optional): Sample size.
 
     Attributes:
         mean(:obj:`Variable`): Mean (mu).

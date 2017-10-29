@@ -23,15 +23,20 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
         :math:`x`: The set of conditioned nodes that are present in `p` but
         are not present in `q`.
 
-        :math:`y`: The set of conditioned nodes in `q`.
+        :math:`y`: The set of conditioned nodes in `q`, which may or may
+        not also be present in `q`.
 
-        :math:`z`: The set of sampled nodes in `q`.
+        :math:`z`: The set of sampled nodes present in both `q` and `p`.
 
     Arguments:
         q(:obj:`Trace`): The encoder trace.
+
         p(:obj:`Trace`): The decoder trace.
+
         sample_dim(int, optional): The dimension containing individual samples.
+
         batch_dim(int, optional): The dimension containing batch items.
+
         alpha(float, default 0.1): Coefficient for the ML term.
     """
     z = [n for n in q.sampled() if n in p]

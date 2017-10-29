@@ -1,8 +1,5 @@
 from collections import OrderedDict, MutableMapping
-from . import distributions
-from .distributions.distribution import Distribution
 from .util import batch_sum
-import inspect
 import abc
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
@@ -295,6 +292,10 @@ class Trace(MutableMapping):
 
 
 def _autogen_trace_methods():
+    from . import distributions as _distributions
+    from .distributions.distribution import Distribution as _Distribution
+    import inspect as _inspect
+
     def param_doc(doc):
         keep = False
         doc_body = ["Arguments:"]
@@ -307,8 +308,8 @@ def _autogen_trace_methods():
                 doc_body.append("    " + line.strip())
         return "\n".join(doc_body) + "\n"
 
-    for name, obj in inspect.getmembers(distributions):
-        if hasattr(obj, "__bases__") and Distribution in obj.__bases__:
+    for name, obj in _inspect.getmembers(_distributions):
+        if hasattr(obj, "__bases__") and _Distribution in obj.__bases__:
             f_name = name.lower()
             doc_head = ("Creates a %s-distributed random variable node and "
                         "returns its value.\n\nFor more information, refer to the "
@@ -322,7 +323,7 @@ def _autogen_trace_methods():
                 "specified, a unique name is dynamically generated.")
             doc = doc_head + doc_body + doc_foot
 
-            asp = inspect.getfullargspec(obj.__init__)
+            asp = _inspect.getfullargspec(obj.__init__)
             arg_split = -len(asp.defaults) if asp.defaults else None
             args = ', '.join(asp.args[:arg_split])
             if arg_split:

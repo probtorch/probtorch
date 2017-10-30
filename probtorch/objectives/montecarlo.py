@@ -91,26 +91,18 @@ def log_like(q, p, sample_dim=None, batch_dim=None, log_weights=None,
            are returned without averaging or summation.
     """
     x = [n for n in p.conditioned() if n not in q]
-    log_px = p.log_joint(sample_dim, batch_dim, x)
-    if sample_dim is None:
-        objective = log_px
-    else:
+    objective = p.log_joint(sample_dim, batch_dim, x)
+    if sample_dim is not None:
         if log_weights is None:
             log_weights = q.log_joint(sample_dim, batch_dim, q.conditioned())
         if isinstance(log_weights, Number):
-            objective = log_px
+            objective = objective.mean(0)
         else:
             weights = softmax(log_weights, 0)
-            if reduce:
-                objective = (weights * log_px).sum(0)
-            else:
-                objective = (weights * log_px)
-    if not reduce:
-        return objective
-    elif size_average:
-        return objective.mean()
-    else:
-        return objective.sum()
+            objective = (weights * objective).sum(0)
+    if reduce:
+        objective = objective.mean() if size_average else objective.sum()
+    return objective
 
 
 def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None,
@@ -159,32 +151,23 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None,
         Representations, NIPS 2017.
     """
     y = q.conditioned()
-    z = [n for n in q.sampled() if n in p]
     if log_weights is None:
-        log_qy = q.log_joint(sample_dim, batch_dim, y)
-    else:
-        log_qy = log_weights
+        log_weights = q.log_joint(sample_dim, batch_dim, y)
+    log_qy = log_weights
     log_py = p.log_joint(sample_dim, batch_dim, y)
+    z = [n for n in q.sampled() if n in p]
     log_pz = p.log_joint(sample_dim, batch_dim, z)
     log_qz = q.log_joint(sample_dim, batch_dim, z)
-    log_qp = (log_qy + log_qz - log_py - log_pz)
-    if sample_dim is None:
-        objective = log_qp
-    else:
+    objective = (log_qy + log_qz - log_py - log_pz)
+    if sample_dim is not None:
         if isinstance(log_weights, Number):
-            objective = log_qp
+            objective = objective.mean(0)
         else:
             weights = softmax(log_weights, 0)
-            if reduce:
-                objective = (weights * log_qp).sum(0)
-            else:
-                objective = (weights * log_qp)
-    if not reduce:
-        return objective
-    elif size_average:
-        return objective.mean()
-    else:
-        return objective.sum()
+            objective = (weights * objective).sum(0)
+    if reduce:
+        objective = objective.mean() if size_average else objective.sum()
+    return objective
 
 
 def ml(q, sample_dim=None, batch_dim=None, log_weights=None,
@@ -222,14 +205,11 @@ def ml(q, sample_dim=None, batch_dim=None, log_weights=None,
            are returned without averaging or summation.
     """
     if log_weights is None:
-        log_qy = q.log_joint(sample_dim, batch_dim, q.conditioned())
-    else:
-        log_qy = log_weights
-    if isinstance(log_qy, Number):
-        return log_qy
-    elif not reduce:
-        return log_qy
-    elif size_average:
-        return log_qy.mean()
-    else:
-        return log_qy.sum()
+        log_weights = q.log_joint(sample_dim, batch_dim, q.conditioned())
+    objective = log_weights
+    if not isinstance(objective, Number):
+        if sample_dim is not None:
+            objective = objective.mean(0)
+        if reduce:
+            objective = objective.mean() if size_average else objective.sum()
+    return objective

@@ -38,8 +38,8 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=1.0):
         beta(float, default 1.0):  Coefficient for the KL term.
 
     References:
-        [1] Siddharth Narayanaswamy, Brooks Paige, Jan-Willem van de Meent,
-        Alban Desmaison, Frank Wood, Noah D Goodman, Pushmeet Kohli, and
+        [1] N. Siddharth, Brooks Paige, Jan-Willem van de Meent,
+        Alban Desmaison, Frank Wood, Noah D. Goodman, Pushmeet Kohli, and
         Philip HS Torr, Semi-Supervised Learning of Disentangled
         Representations, NIPS 2017.
     """

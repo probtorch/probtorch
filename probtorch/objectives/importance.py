@@ -2,14 +2,16 @@ from numbers import Number
 from probtorch.util import log_mean_exp
 
 
-def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
+def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1,
+         size_average=True, reduce=True):
     r"""Calculates an importance weighted Monte Carlo estimate of the
     semi-supervised evidence lower bound (ELBO)
 
     .. math:: \frac{1}{B} \sum_{b=1}^B
               \log \left[
                 \frac{1}{S} \sum_{s=1}^S
-                \frac{p(x^{(b)}, y^{(b)}, z^{(s,b)})}{q(z^{(s,b)} | x^{(b)})}
+                \frac{p(x^{(b)}, y^{(b)}, z^{(s,b)})}
+                     {q(z^{(s,b)} | x^{(b)})}
               \right]
               + \frac{\alpha}{B} \sum_{b=1}^B
               \log \left[
@@ -30,14 +32,16 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
 
     Arguments:
         q(:obj:`Trace`): The encoder trace.
-
         p(:obj:`Trace`): The decoder trace.
-
         sample_dim(int, optional): The dimension containing individual samples.
-
         batch_dim(int, optional): The dimension containing batch items.
-
         alpha(float, default 0.1): Coefficient for the ML term.
+        size_average (bool, optional): By default, the objective is averaged
+            over items in the minibatch. When set to false, the objective is
+            instead summed over the minibatch.
+        reduce (bool, optional): By default, the objective is averaged or
+           summed over items in the minibatch. When reduce is False, losses
+           are returned without averaging or summation.
     """
     z = [n for n in q.sampled() if n in p]
     log_pxyz = p.log_joint(sample_dim, batch_dim)
@@ -45,10 +49,16 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1):
     log_qy = q.log_joint(sample_dim, batch_dim, q.conditioned())
     log_pq = (log_pxyz - log_qz)
     if sample_dim is None:
-        return log_pq.mean() + alpha * log_qy.mean()
+        objective = log_pq + alpha * log_qy
     else:
         if isinstance(log_qy, Number):
-            return log_mean_exp(log_pq, 0).mean()
+            objective = log_mean_exp(log_pq, 0)
         else:
-            return (log_mean_exp(log_pq, 0).mean() +
-                    alpha * log_mean_exp(log_qy, 0).mean())
+            objective = (log_mean_exp(log_pq, 0) +
+                         alpha * log_mean_exp(log_qy, 0))
+    if not reduce:
+        return objective
+    elif size_average:
+        return objective.mean()
+    else:
+        return objective.sum()

@@ -51,11 +51,9 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1,
     if sample_dim is None:
         objective = log_pq + alpha * log_qy
     else:
-        if isinstance(log_qy, Number):
-            objective = log_mean_exp(log_pq, 0)
-        else:
-            objective = (log_mean_exp(log_pq, 0) +
-                         alpha * log_mean_exp(log_qy, 0))
+        objective = log_mean_exp(log_pq, 0)
+        if not isinstance(log_qy, Number):
+            objective = objective + alpha * log_mean_exp(log_qy, 0)
     if reduce:
         objective = objective.mean() if size_average else objective.sum()
     return objective

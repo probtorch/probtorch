@@ -316,11 +316,11 @@ def _autogen_trace_methods():
                         ":class:`~probtorch.distributions.%s` distribution.\n\n" % (f_name, name))
             doc_body = param_doc(obj.__doc__)
             doc_foot = (
-                "    value(:obj:`Variable`, optional): Value of the RandomVariable instance. "
-                "When specified, the variable is observed. When not specified a value is "
-                "sampled and the variable is not observed.\n"
-                "    name(string, optional): The name for the RandomVariable. When not "
-                "specified, a unique name is dynamically generated.")
+                "    value(:obj:`Variable`, optional): Value of the RandomVariable instance.\n"
+                "        When specified, the variable is observed. When not specified a value is\n"
+                "        sampled and the variable is not observed.\n"
+                "    name(string, optional): The name for the RandomVariable. When not\n"
+                "        specified, a unique name is dynamically generated.")
             doc = doc_head + doc_body + doc_foot
             try:
                 asp = _inspect.getfullargspec(obj.__init__)  # try python3 first

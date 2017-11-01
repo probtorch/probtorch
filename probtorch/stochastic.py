@@ -326,7 +326,7 @@ def _autogen_trace_methods():
                 asp = _inspect.getfullargspec(obj.__init__)  # try python3 first
             except Exception as e:
                 asp = _inspect.getargspec(obj.__init__)  # python 2
-                
+
             arg_split = -len(asp.defaults) if asp.defaults else None
             args = ', '.join(asp.args[:arg_split])
 

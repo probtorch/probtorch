@@ -4,7 +4,7 @@ import torch
 from torch.autograd import Variable
 import math
 from probtorch.distributions.distribution import *
-from probtorch.util import broadcast_size, expanded_size
+from probtorch.util import expanded_size
 from numbers import Number
 
 __all__ = [
@@ -20,7 +20,7 @@ class Kumaraswamy(Distribution):
 
     ========  ==========================================
     Support   :math:`x \in \left[0,1\right]`
-    Mean      :math:`b\Gamma \left(1+\frac{1}{a}\right)\Gamma \left(b\right)/\Gamma \left(1+\frac{1}{a}+b\right)`
+    Mean      :math::`b\Gamma \left(1 + \frac{1}{a} \right) \Gamma (b) / \Gamma \left( 1 + \frac{1}{a} + b\right)`
     Variance  No closed-form
     ========  ==========================================
 

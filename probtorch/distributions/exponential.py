@@ -23,10 +23,8 @@ class Exponential(Distribution):
     Variance  :math:`\frac{1}{\lambda^2}`
     ========  ==========================================
 
-
     Parameters:
         lam(:obj:`Variable`): Rate.
-        size(tuple, optional): Sample size.
 
     Attributes:
         mean(:obj:`Variable`): Mean (1/lam).

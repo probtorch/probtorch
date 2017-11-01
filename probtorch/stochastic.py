@@ -322,18 +322,24 @@ def _autogen_trace_methods():
                 "    name(string, optional): The name for the RandomVariable. When not "
                 "specified, a unique name is dynamically generated.")
             doc = doc_head + doc_body + doc_foot
-
-            asp = _inspect.getfullargspec(obj.__init__)
+            try:
+                asp = _inspect.getfullargspec(obj.__init__)  # try python3 first
+            except Exception as e:
+                asp = _inspect.getargspec(obj.__init__)  # python 2
+                
             arg_split = -len(asp.defaults) if asp.defaults else None
             args = ', '.join(asp.args[:arg_split])
+
             if arg_split:
                 pairs = zip(asp.args[arg_split:], asp.defaults)
                 kwargs = ', '.join(['%s=%s' % (n, v) for n, v in pairs])
                 args = args + ', ' + kwargs
-            env = {}
-            exec("""def f({0}, name=None, value=None):
-                        self.variable(obj, {0}, name=name, value=value)
-                 """.format(args), env)
+
+            env = {'obj': obj}
+            s = ("""def f({0}, name=None, value=None):
+                    return self.variable(obj, {1}, name=name, value=value)""")
+            input_args = ', '.join(asp.args[1:])
+            exec(s.format(args, input_args), env)
             f = env['f']
             f.__name__ = f_name
             f.__doc__ = doc

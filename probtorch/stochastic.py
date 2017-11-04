@@ -23,6 +23,10 @@ class Stochastic(object):
     def log_prob(self):
         """Holds the log probability of a stochastic variable"""
 
+    @abc.abstractproperty
+    def mask(self):
+        """Holds a mask for batch items"""
+
 
 class RandomVariable(Stochastic):
     """Random variables wrap a PyTorch Variable to associate a distribution
@@ -34,11 +38,12 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, observed=False):
+    def __init__(self, dist, value, observed=False, mask=None):
         self._dist = dist
         self._value = value
         self._log_prob = dist.log_prob(value)
         self._observed = observed
+        self._mask = mask
 
     @property
     def dist(self):
@@ -56,6 +61,10 @@ class RandomVariable(Stochastic):
     def log_prob(self):
         return self._log_prob
 
+    @property
+    def mask(self):
+        return self._mask
+
     def __repr__(self):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
                                                      repr(self._value.data))
@@ -69,9 +78,10 @@ class Factor(Stochastic):
         log_prob(:obj:`Variable`): The log-probability.
     """
 
-    def __init__(self, log_prob):
+    def __init__(self, log_prob, mask=None):
         self._value = None
         self._log_prob = log_prob
+        self._mask = mask
 
     @property
     def value(self):
@@ -95,10 +105,11 @@ class Loss(Stochastic):
         target(:obj:`Variable`): The target value.
     """
 
-    def __init__(self, loss, value, target):
+    def __init__(self, loss, value, target, mask=None):
         self._loss = loss
         self._value = value
         self._log_prob = -loss(value, target)
+        self._mask = mask
 
     @property
     def value(self):
@@ -128,6 +139,7 @@ class Trace(MutableMapping):
         # so could we use a normal dict instead?
         self._nodes = OrderedDict()
         self._counters = {}
+        self._mask = None
 
     def __getitem__(self, name):
         return self._nodes[name]
@@ -198,9 +210,17 @@ class Trace(MutableMapping):
         for node in nodes:
             self.append(node)
 
+    @property
+    def mask(self):
+        return self._mask
+
+    @mask.setter
+    def mask(self, mask):
+        self._mask = mask
+
     def factor(self, log_prob, name=None):
         """Creates a new Factor node"""
-        node = Factor(log_prob)
+        node = Factor(log_prob, mask=self._mask)
         if name is None:
             self.append(node)
         else:
@@ -208,7 +228,7 @@ class Trace(MutableMapping):
 
     def loss(self, objective, value, target, name=None):
         """Creates a new Loss node"""
-        self[name] = Loss(objective, value, target)
+        self[name] = Loss(objective, value, target, mask=self._mask)
 
     def variable(self, Dist, *args, **kwargs):
         """Creates a new RandomVariable node"""
@@ -222,7 +242,7 @@ class Trace(MutableMapping):
             observed = True
             if isinstance(value, RandomVariable):
                 value = value.value
-        node = RandomVariable(dist, value, observed)
+        node = RandomVariable(dist, value, observed, mask=self._mask)
         if name is None:
             self.append(node)
         else:
@@ -284,9 +304,13 @@ class Trace(MutableMapping):
         log_prob = 0.0
         for n in nodes:
             if n in self._nodes:
-                log_p = batch_sum(self._nodes[n].log_prob,
+                node = self._nodes[n]
+                log_p = batch_sum(node.log_prob,
                                   sample_dim,
                                   batch_dim)
+                if batch_dim is not None and node._mask is not None:
+                    #view_size = (-1,) + (1,) * (log_p.dim() - batch_dim - 1)
+                    log_p = log_p * node._mask
                 log_prob = log_prob + log_p
         return log_prob
 

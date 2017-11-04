@@ -198,7 +198,7 @@ class Trace(MutableMapping):
         for node in nodes:
             self.append(node)
 
-    def factor(self, log_prob, name=None, value=None):
+    def factor(self, log_prob, name=None):
         """Creates a new Factor node"""
         node = Factor(log_prob)
         if name is None:

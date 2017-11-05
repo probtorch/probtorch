@@ -91,6 +91,10 @@ class Factor(Stochastic):
     def log_prob(self):
         return self._log_prob
 
+    @property
+    def mask(self):
+        return self._mask
+
     def __repr__(self):
         return "Factor with log probability: %s" % repr(self._log_prob.data)
 
@@ -122,6 +126,10 @@ class Loss(Stochastic):
     @property
     def loss(self):
         return self._log_prob
+
+    @property
+    def mask(self):
+        return self._mask
 
     def __repr__(self):
         return "Loss with log probability: %s" % repr(self._log_prob.data)
@@ -308,9 +316,9 @@ class Trace(MutableMapping):
                 log_p = batch_sum(node.log_prob,
                                   sample_dim,
                                   batch_dim)
-                if batch_dim is not None and node._mask is not None:
+                if batch_dim is not None and node.mask is not None:
                     #view_size = (-1,) + (1,) * (log_p.dim() - batch_dim - 1)
-                    log_p = log_p * node._mask
+                    log_p = log_p * node.mask
                 log_prob = log_prob + log_p
         return log_prob
 

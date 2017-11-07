@@ -77,7 +77,6 @@ class Laplace(Distribution):
         log = math.log if isinstance(self._b, Number) else torch.log
         return 1. + math.log(2.0) + log(self._b)
 
-
     def sample(self, *sizes):
         size = expanded_size(sizes, self._size)
         uniform = Variable(torch.Tensor(*size)
@@ -95,11 +94,9 @@ class Laplace(Distribution):
         log_weight = -torch.abs(value - self._mu) / self._b
         return log_weight - log_normalizer
 
-
     def cdf(self, value):
-        
-        # Cumulative distribution function. Given the variable X, the CDF is: CDF(x): = P[X <= x]
+        # Cumulative distribution function. Given the variable X,
+        # the CDF is: CDF(x): = P[X <= x]
         z = (value - self.mu) / self._b
         return (0.5 + 0.5 * torch.sign(z) *
                 (1. - torch.exp(-torch.abs(z))))
-

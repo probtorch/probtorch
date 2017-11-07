@@ -29,20 +29,19 @@ class TestLaplace(TestCase):
         # test cdf
         res1 = dist.cdf(value).data
         res2 = laplace.cdf(value.data.numpy(),
-                              mu.data.numpy(),
-                              b.data.numpy())
+                           mu.data.numpy(),
+                           b.data.numpy())
         self.assertEqual(res1, res2)
 
     def test_entropy(self):
         mu = Variable(torch.randn(100))
         b = torch.exp(Variable(torch.randn(100)))
-        value = Variable(torch.randn(100))
         dist = Laplace(mu, b)
 
         # test entropy
         res1 = dist.entropy.data
         res2 = laplace.entropy(mu.data.numpy(),
-                              b.data.numpy())
+                               b.data.numpy())
         self.assertEqual(res1, res2)
 
     def test_sample(self):
@@ -54,7 +53,6 @@ class TestLaplace(TestCase):
         samples = dist.sample(SAMPLE_COUNT).data
         _, p = kstest(samples.numpy(), 'laplace', (mu, b))
         assert p > 0.05
-
 
     def test_size(self):
         for dims in range(1, 4):
@@ -82,7 +80,6 @@ class TestLaplace(TestCase):
                 dist = Laplace(mu, b)
                 log_prob = dist.log_prob(value)
                 self.assertEqual(sizes, log_prob.size())
-
 
 if __name__ == '__main__':
     run_tests()

@@ -28,7 +28,7 @@
      id="namedview3464"
      showgrid="false"
      inkscape:zoom="2.1653382"
-     inkscape:cx="76.017477"
+     inkscape:cx="-108.71117"
      inkscape:cy="79.919112"
      inkscape:window-x="51"
      inkscape:window-y="1"
@@ -141,21 +141,44 @@
       </g>
     </g>
   </g>
-  <text
-     xml:space="preserve"
+  <g
      style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-     x="36.407848"
-     y="-126.6"
-     id="text3395"
-     sodipodi:linespacing="110%"><tspan
-       sodipodi:role="line"
-       id="tspan3397"
-       x="36.407848"
-       y="-126.6"
-       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start">PROB</tspan><tspan
-       sodipodi:role="line"
-       x="36.407848"
-       y="-106.8"
-       id="tspan3399"
-       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start">TORCH</tspan></text>
+     id="text3395">
+    <path
+       d="m 43.283848,-139.2 -5.184,0 0,12.6 2.34,0 0,-3.636 2.844,0 c 3.312,0 5.364,-1.71 5.364,-4.482 0,-2.79 -2.052,-4.482 -5.364,-4.482 z m -0.108,6.984 -2.736,0 0,-5.004 2.736,0 c 2.052,0 3.114,0.918 3.114,2.502 0,1.584 -1.062,2.502 -3.114,2.502 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3475" />
+    <path
+       d="m 61.766192,-126.6 -2.898,-4.14 c 1.71,-0.666 2.682,-2.07 2.682,-3.978 0,-2.79 -2.052,-4.482 -5.364,-4.482 l -5.184,0 0,12.6 2.34,0 0,-3.672 2.844,0 c 0.162,0 0.324,0 0.486,-0.018 l 2.574,3.69 2.52,0 z m -2.574,-8.118 c 0,1.584 -1.062,2.52 -3.114,2.52 l -2.736,0 0,-5.022 2.736,0 c 2.052,0 3.114,0.918 3.114,2.502 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3477" />
+    <path
+       d="m 70.03663,-126.42 c 3.906,0 6.786,-2.736 6.786,-6.48 0,-3.744 -2.88,-6.48 -6.786,-6.48 -3.906,0 -6.786,2.754 -6.786,6.48 0,3.726 2.88,6.48 6.786,6.48 z m 0,-2.052 c -2.538,0 -4.428,-1.854 -4.428,-4.428 0,-2.574 1.89,-4.428 4.428,-4.428 2.538,0 4.428,1.854 4.428,4.428 0,2.574 -1.89,4.428 -4.428,4.428 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3479" />
+    <path
+       d="m 88.26613,-133.152 c 0.972,-0.522 1.62,-1.476 1.62,-2.772 0,-1.998 -1.62,-3.276 -4.644,-3.276 l -5.904,0 0,12.6 6.264,0 c 3.24,0 4.932,-1.26 4.932,-3.42 0,-1.638 -0.918,-2.7 -2.268,-3.132 z m -3.276,-4.212 c 1.62,0 2.538,0.576 2.538,1.746 0,1.152 -0.918,1.728 -2.538,1.728 l -3.312,0 0,-3.474 3.312,0 z m 0.468,8.928 -3.78,0 0,-3.636 3.78,0 c 1.764,0 2.718,0.558 2.718,1.818 0,1.26 -0.954,1.818 -2.718,1.818 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3481" />
+    <path
+       d="m 40.655848,-106.8 2.34,0 0,-10.62 4.176,0 0,-1.98 -10.692,0 0,1.98 4.176,0 0,10.62 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3483" />
+    <path
+       d="m 54.638192,-106.62 c 3.906,0 6.786,-2.736 6.786,-6.48 0,-3.744 -2.88,-6.48 -6.786,-6.48 -3.906,0 -6.786,2.754 -6.786,6.48 0,3.726 2.88,6.48 6.786,6.48 z m 0,-2.052 c -2.538,0 -4.428,-1.854 -4.428,-4.428 0,-2.574 1.89,-4.428 4.428,-4.428 2.538,0 4.428,1.854 4.428,4.428 0,2.574 -1.89,4.428 -4.428,4.428 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3485" />
+    <path
+       d="m 74.703692,-106.8 -2.898,-4.14 c 1.71,-0.666 2.682,-2.07 2.682,-3.978 0,-2.79 -2.052,-4.482 -5.364,-4.482 l -5.184,0 0,12.6 2.34,0 0,-3.672 2.844,0 c 0.162,0 0.324,0 0.486,-0.018 l 2.574,3.69 2.52,0 z m -2.574,-8.118 c 0,1.584 -1.062,2.52 -3.114,2.52 l -2.736,0 0,-5.022 2.736,0 c 2.052,0 3.114,0.918 3.114,2.502 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3487" />
+    <path
+       d="m 82.92013,-106.62 c 2.07,0 3.834,-0.738 5.004,-2.106 l -1.512,-1.44 c -0.918,1.008 -2.052,1.494 -3.366,1.494 -2.61,0 -4.5,-1.836 -4.5,-4.428 0,-2.592 1.89,-4.428 4.5,-4.428 1.314,0 2.448,0.486 3.366,1.476 l 1.512,-1.422 c -1.17,-1.368 -2.934,-2.106 -4.986,-2.106 -3.87,0 -6.75,2.718 -6.75,6.48 0,3.762 2.88,6.48 6.732,6.48 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3489" />
+    <path
+       d="m 99.057411,-119.4 0,5.202 -6.516,0 0,-5.202 -2.34,0 0,12.6 2.34,0 0,-5.4 6.516,0 0,5.4 2.339999,0 0,-12.6 -2.339999,0 z"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:18px;line-height:110.00000238%;font-family:Montserrat;-inkscape-font-specification:'Montserrat, Semi-Bold';text-align:start;writing-mode:lr-tb;text-anchor:start"
+       id="path3491" />
+  </g>
 </svg>

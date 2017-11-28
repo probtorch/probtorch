@@ -317,7 +317,6 @@ class Trace(MutableMapping):
                                   sample_dim,
                                   batch_dim)
                 if batch_dim is not None and node.mask is not None:
-                    #view_size = (-1,) + (1,) * (log_p.dim() - batch_dim - 1)
                     log_p = log_p * node.mask
                 log_prob = log_prob + log_p
         return log_prob

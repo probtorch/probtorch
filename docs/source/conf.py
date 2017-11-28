@@ -122,7 +122,7 @@ html_theme_options = {
     'logo_only': True,
 }
 
-html_logo = '_static/img/pytorch-logo-dark.svg'
+html_logo = '_static/img/probtorch-logo.svg'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -133,7 +133,7 @@ html_static_path = ['_static']
 html_context = {
     'css_files': [
         'https://fonts.googleapis.com/css?family=Lato',
-        '_static/css/pytorch_theme.css'
+        '_static/css/probtorch_theme.css'
     ],
 }
 

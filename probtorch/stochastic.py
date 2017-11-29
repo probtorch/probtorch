@@ -150,7 +150,7 @@ class Trace(MutableMapping):
         self._mask = None
 
     def __getitem__(self, name):
-        return self._nodes[name]
+        return self._nodes.get(name, None)
 
     def __setitem__(self, name, node):
         if not isinstance(node, Stochastic):

@@ -17,7 +17,7 @@ This repository accompanies the NIPS 2017 paper:
 ```latex
 @inproceedings{siddharth2017learning,
     title = {Learning Disentangled Representations with Semi-Supervised Deep Generative Models},
-    author = {Siddharth, N. and Paige, T. Brooks and van de Meent, Jan-Willem and Desmaison, Alban and Goodman, Noah D. and Kohli, Pushmeet and Wood, 
+    author = {Siddharth, N. and Paige, Brooks and van de Meent, Jan-Willem and Desmaison, Alban and Goodman, Noah D. and Kohli, Pushmeet and Wood, 
 Frank and Torr, Philip},
     booktitle = {Advances in Neural Information Processing Systems 30},
     editor = {I. Guyon and U. V. Luxburg and S. Bengio and H. Wallach and R. Fergus and S. Vishwanathan and R. Garnett},

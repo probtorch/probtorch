@@ -324,6 +324,24 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
+    def log_pair(self, sample_dim, batch_dim, node):
+        """Return the pair log probabilities for every pair of (sample, input) in the batch.
+        The resulting tensor Q has the form: Q[s,b1,b2,d] = q(z_{d}^{(sb1)} | x^{(b2)})
+
+        Arguments:
+            sample_dim(int): The dimension that enumerates samples.
+            batch_dim(int): The dimension that enumerates batch items.
+            node: The node for which the log pair probabilities to be computed.
+        """
+        if node in self._nodes:
+            node = self._nodes[node]
+        value = node.value
+        size = value.size()
+        values_expand = value.unsqueeze(3).repeat(1, 1, 1, size[batch_dim]).permute(batch_dim, sample_dim, 3, 2)
+        log_pair_probs = node.dist.log_prob(values_expand).permute(1, 0, 2, 3)
+
+        return log_pair_probs
+
 
 def _autogen_trace_methods():
     from . import distributions as _distributions

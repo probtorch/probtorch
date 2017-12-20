@@ -24,3 +24,16 @@ Objectives
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: probtorch.objectives.importance.elbo
+
+`Average Encoding`
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: probtorch.objectives.average_encoding.elbo
+
+.. autofunction:: probtorch.objectives.average_encoding.log_like
+
+.. autofunction:: probtorch.objectives.average_encoding.disentangle
+
+.. autofunction:: probtorch.objectives.average_encoding.realism
+
+.. autofunction:: probtorch.objectives.average_encoding.mutual_info

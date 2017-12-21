@@ -1,5 +1,5 @@
 from collections import OrderedDict, MutableMapping
-from .util import batch_sum
+from .util import batch_sum, log_mean_exp
 import abc
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
@@ -324,23 +324,29 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
-    def log_pair(self, sample_dim, batch_dim, node):
-        """Return the pair log probabilities for every pair of (sample, input) in the batch.
-        The resulting tensor Q has the form: Q[s,b1,b2,d] = q(z_{d}^{(sb1)} | x^{(b2)})
+    def log_pair(self, sample_dim, batch_dim, nodes):
+        """Return the log average probability values, optionally for a subset of nodes.
 
         Arguments:
+            nodes: The subset of nodes for which the log pair probabilities to be computed.
             sample_dim(int): The dimension that enumerates samples.
             batch_dim(int): The dimension that enumerates batch items.
-            node: The node for which the log pair probabilities to be computed.
         """
-        if node in self._nodes:
-            node = self._nodes[node]
-        value = node.value
-        size = value.size()
-        values_expand = value.unsqueeze(3).repeat(1, 1, 1, size[batch_dim]).permute(batch_dim, sample_dim, 3, 2)
-        log_pair_probs = node.dist.log_prob(values_expand).permute(1, 0, 2, 3)
 
-        return log_pair_probs
+        log_avg_joint = 0.0
+        log_avg_sep = 0.0
+        # Note: not entirely sure if this is correct for more than one node
+        for n in nodes:
+            if n in self._nodes:
+                node = self._nodes[n]
+                value = node.value
+                size = value.size()
+                values_expand = value.unsqueeze(3).repeat(1, 1, 1, size[batch_dim]).permute(batch_dim, sample_dim, 3, 2)
+                log_pair_probs = node.dist.log_prob(values_expand).permute(1, 0, 2, 3) # (SxBxBxD) dimension
+                log_avg_joint = log_avg_joint + log_mean_exp(log_pair_probs.sum(-1), 2)
+                log_avg_sep = log_avg_sep + log_mean_exp(log_pair_probs, 2).sum(-1)
+
+        return log_avg_joint, log_avg_sep
 
 
 def _autogen_trace_methods():

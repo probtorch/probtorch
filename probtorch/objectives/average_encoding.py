@@ -1,6 +1,3 @@
-from probtorch.util import log_mean_exp
-
-
 def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1,
          beta=1.0, gamma=1.0, size_average=True, reduce=True):
     r"""

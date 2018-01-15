@@ -44,16 +44,18 @@ Frank and Torr, Philip},
 # Installation
 
 1. Install PyTorch [[instructions](https://github.com/pytorch/pytorch)]
-2. Clone this repository
+
+2. Install this repository from source
 ```
-git clone git@github.com:probtorch/probtorch.git
+pip install git+git://github.com/probtorch/probtorch
 ```
 
 3. Refer to the `examples/` subdirectory for [Jupyter](http://jupyter.org) notebooks that illustrate usage. 
 
 4. To build and read the API documentation, please do the following 
 ```
-cd docs
+git clone git://github.com/probtorch/probtorch
+cd probtorch/docs
 pip install -r requirements.txt
 make html
 open build/html/index.html

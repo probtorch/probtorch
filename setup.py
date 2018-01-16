@@ -1,16 +1,23 @@
 import io
 import os
 import sys
+import subprocess
 from shutil import rmtree
 
 from setuptools import find_packages, setup, Command
-import probtorch.version
+import setuptools.command.build_py
 
 # Package meta-data.
 NAME = 'probtorch'
 DESCRIPTION = 'Probabilistic Torch is library for deep generative models that extends PyTorch'
 URL = 'https://github.com/probtorch/probtorch'
-VERSION = probtorch.version.__version__
+CWD = os.path.dirname(os.path.abspath(__file__))
+VERSION = '0.0'
+try:
+    sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=CWD).decode('ascii').strip()
+    VERSION += '+' + sha[:7]
+except Exception:
+    pass
 
 REQUIRED = [
     'torch',
@@ -27,6 +34,21 @@ here = os.path.abspath(os.path.dirname(__file__))
 # Note: this will only work if 'README.md' is present in your MANIFEST.in file!
 with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = '\n' + f.read()
+
+
+class build_py(setuptools.command.build_py.build_py):
+
+    def run(self):
+        self.create_version_file()
+        setuptools.command.build_py.build_py.run(self)
+
+    @staticmethod
+    def create_version_file():
+        global VERSION, CWD
+        print('-- Building version ' + VERSION)
+        version_path = os.path.join(CWD, 'probtorch', 'version.py')
+        with open(version_path, 'w') as f:
+            f.write("__version__ = '{}'\n".format(VERSION))
 
 
 class UploadCommand(Command):
@@ -87,6 +109,7 @@ setup(
     ],
     # $ setup.py publish support.
     cmdclass={
+        'build_py': build_py,
         'upload': UploadCommand,
     },
 )

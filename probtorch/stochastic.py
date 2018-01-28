@@ -324,7 +324,7 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
-    def log_pair(self, sample_dim, batch_dim, nodes):
+    def log_pair(self, sample_dim, batch_dim, nodes=None):
         """Return the log average probability values, optionally for a subset of nodes.
 
         Arguments:
@@ -332,15 +332,17 @@ class Trace(MutableMapping):
             sample_dim(int): The dimension that enumerates samples.
             batch_dim(int): The dimension that enumerates batch items.
         """
-
+        if nodes is None:
+            nodes = self.variables()
         log_avg_joint = 0.0
         log_avg_sep = 0.0
-        # Note: not entirely sure if this is correct for more than one node
         for n in nodes:
             if n in self._nodes:
                 node = self._nodes[n]
+                # ToDo: extend to other node types when possible 
+                # (ok for Loss, probably not for Factor)
+                assert(isinstance(node, RandomVariable))
                 value = node.value
-                size = value.size()
                 values_expand = value.unsqueeze(3).repeat(1, 1, 1, size[batch_dim]).permute(batch_dim, sample_dim, 3, 2)
                 log_pair_probs = node.dist.log_prob(values_expand).permute(1, 0, 2, 3) # (SxBxBxD) dimension
                 log_avg_joint = log_avg_joint + log_mean_exp(log_pair_probs.sum(-1), 2)

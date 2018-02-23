@@ -1,5 +1,5 @@
 from collections import OrderedDict, MutableMapping
-from .util import batch_sum
+from .util import batch_sum, partial_sum, log_mean_exp
 import abc
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
@@ -320,6 +320,38 @@ class Trace(MutableMapping):
                     log_p = log_p * node.mask
                 log_prob = log_prob + log_p
         return log_prob
+
+    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None):
+        if batch_dim is None:
+            return self.log_joint(sample_dim, batch_dim, nodes)
+        if nodes is None:
+            nodes = self._nodes
+        log_joint = 0.0
+        log_prod_marginals = 0.0
+        for n in nodes:
+            if n in self._nodes:
+                node = self._nodes[n]
+                if not isinstance(node, RandomVariable):
+                    raise ValueError(('Batch averages can only be computed '
+                                      'for random variables.'))
+                v = self._nodes[n].value
+                if sample_dim is None:
+                    keep_dims = (0, batch_dim + 1)
+                else:
+                    keep_dims = (0, sample_dim + 1, batch_dim + 1)
+                # ToDo: can we do this with a view (instead of transpose)?
+                v_pairs = v.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
+                log_pairwise = node.dist.log_prob(v_pairs)
+                log_j = log_mean_exp(partial_sum(log_pairwise, keep_dims),
+                                     batch_dim + 1).transpose(0, batch_dim)
+                log_pm = batch_sum(log_mean_exp(log_pairwise, batch_dim + 1),
+                                   sample_dim + 1, 0)
+                if node.mask is not None:
+                    log_j = log_j * node.mask
+                    log_pm = log_pm * node.mask
+                log_joint = log_joint + log_j
+                log_prod_marginals = log_prod_marginals + log_pm
+        return log_joint, log_prod_marginals
 
 
 def _autogen_trace_methods():

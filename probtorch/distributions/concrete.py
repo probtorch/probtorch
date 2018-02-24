@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 from probtorch.distributions.distribution import *
-from probtorch.util import log_sum_exp, expanded_size
+from probtorch.util import log_sum_exp, expanded_size, broadcast_size
 from numbers import Number
 
 __all__ = [
@@ -71,14 +71,23 @@ class Concrete(Distribution):
         """Returns the probability mass, which is the probability of the argmax
         of the value under the corresponding Discrete distribution."""
         if value.data.type() != 'torch.LongTensor':
-            _, value = value.max(-1)
-        if value.dim() < len(self._size[:-1]):
-            value = value.expand(*self._size[:-1])
+            _, mvalue = value.max(-1)
         log_probs = self._log_probs
-        if value.dim() > len(self._size[:-1]):
-            size = value.size() + (self._size[-1],)
-            log_probs = self._log_probs.expand(*size)
-        return log_probs.gather(-1, value.unsqueeze(-1)).squeeze(-1)
+        if (log_probs.dim() > 1) or (value.dim() > 1):
+            mvalue = mvalue.unsqueeze(-1)
+        size = broadcast_size(mvalue, log_probs)
+        mvalue = mvalue.expand(size[:-1] + (1,))
+        log_probs = log_probs.expand(size)
+        return log_probs.gather(-1, mvalue).squeeze(-1)
+
+
+        # if value.dim() < len(self._size[:-1]):
+        #     value = value.expand(*self._size[:-1])
+        # log_probs = self._log_probs
+        # if value.dim() > len(self._size[:-1]):
+        #     size = value.size() + (self._size[-1],)
+        #     log_probs = self._log_probs.expand(*size)
+        # return log_probs.gather(-1, value.unsqueeze(-1)).squeeze(-1)
 
     def log_pdf(self, value):
         """Returns the marginal probability density for the relaxed value."""

@@ -326,7 +326,7 @@ class Trace(MutableMapping):
             return self.log_joint(sample_dim, batch_dim, nodes)
         if nodes is None:
             nodes = self._nodes
-        log_joint = 0.0
+        log_pairwise = 0.0
         log_prod_marginals = 0.0
         for n in nodes:
             if n in self._nodes:
@@ -335,23 +335,22 @@ class Trace(MutableMapping):
                     raise ValueError(('Batch averages can only be computed '
                                       'for random variables.'))
                 v = self._nodes[n].value
+                # ToDo: can we do this with a view (instead of transpose)?
+                v_pairs = v.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
+                log_pw = node.dist.log_prob(v_pairs)
+                log_pm = batch_sum(log_mean_exp(log_pw, batch_dim + 1),
+                                   sample_dim + 1, 0)
                 if sample_dim is None:
                     keep_dims = (0, batch_dim + 1)
                 else:
                     keep_dims = (0, sample_dim + 1, batch_dim + 1)
-                # ToDo: can we do this with a view (instead of transpose)?
-                v_pairs = v.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
-                log_pairwise = node.dist.log_prob(v_pairs)
-                log_j = log_mean_exp(partial_sum(log_pairwise, keep_dims),
-                                     batch_dim + 1).transpose(0, batch_dim)
-                log_pm = batch_sum(log_mean_exp(log_pairwise, batch_dim + 1),
-                                   sample_dim + 1, 0)
-                if node.mask is not None:
-                    log_j = log_j * node.mask
-                    log_pm = log_pm * node.mask
-                log_joint = log_joint + log_j
+                log_pairwise = log_pairwise + partial_sum(log_pw, keep_dims)
                 log_prod_marginals = log_prod_marginals + log_pm
-        return log_joint, log_prod_marginals
+        log_joint_marginal = log_mean_exp(log_pairwise, batch_dim + 1).transpose(0, batch_dim)
+        if node.mask is not None:
+            log_joint_marginal = log_joint_marginal * node.mask
+            log_prod_marginals = log_prod_marginals * node.mask
+        return log_joint_marginal, log_prod_marginals
 
 
 def _autogen_trace_methods():

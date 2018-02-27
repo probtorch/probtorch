@@ -7,3 +7,4 @@ from .exponential import *
 from .laplace import *
 from .logistic import *
 from .kumaraswamy import *
+from .multivariate_normal import *

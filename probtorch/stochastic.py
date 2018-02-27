@@ -1,6 +1,7 @@
 from collections import OrderedDict, MutableMapping
 from .util import batch_sum, partial_sum, log_mean_exp
 import abc
+import re
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
 
@@ -373,7 +374,7 @@ def _autogen_trace_methods():
 
     for name, obj in _inspect.getmembers(_distributions):
         if hasattr(obj, "__bases__") and _Distribution in obj.__bases__:
-            f_name = name.lower()
+            f_name = re.sub('(?!^)([A-Z])', r'_\1', name).lower()
             doc_head = ("Creates a %s-distributed random variable node and "
                         "returns its value.\n\nFor more information, refer to the "
                         ":class:`~probtorch.distributions.%s` distribution.\n\n" % (f_name, name))

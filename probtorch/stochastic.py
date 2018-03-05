@@ -183,7 +183,11 @@ class Trace(MutableMapping):
         item_reprs = []
         for n in self:
             node = self[n]
-            dname = type(node.dist).__name__
+            if isinstance(node, Loss) or isinstance(node, Factor):
+                dname = type(node).__name__
+            else:
+                dname = type(node.dist).__name__
+
             dtype = node.value.data.type()
             dsize = 'x'.join([str(d) for d in node.value.data.size()])
             val_repr = "[%s of size %s]" % (dtype, dsize)

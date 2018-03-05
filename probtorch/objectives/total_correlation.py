@@ -56,7 +56,22 @@ def kl(q, p, N, sample_dim=None, batch_dim=None, log_weights=None, beta=1.0,
     described for variable z.
 
     .. math::
-       TBC
+       E_{q(z,x)}&\left[\log \frac{q(z|x)}{p(z)}\right] \\
+       = \mathop{D_{\text{KL}}}\left(q(z,x) \| q(z)q(x)\right)
+       + \beta * \mathop{D_{\text{KL}}}\left(q(z) \| \prod_d q(z^d)\right)
+       + \sum_d \mathop{D_{\text{KL}}}\left(q(z^d) \| p(z^d)\right) \\
+       = E_{q(z,x)}\left[\log \frac{q(z|x)}{q(z)}\right]
+       + \beta * E_{q(z)}\left[\frac{q(z)}{\prod_d q(z^d)}\right]
+       + \sum_d E_{q(z^d)}\frac{q(z^d)}{p(z^d)} \\
+       \approx \frac{1}{M} \sum_i \log q(z|x_i)
+         - \frac{1}{M} \sum_i \log \frac{1}{MN} \sum_j q(z_i|x_j) \\
+       + \beta * \frac{1}{M} \sum_i \log \frac{1}{MN} \sum_j q(z_i|x_j)
+         - \beta * \sum_d \frac{1}{M} \sum_i \log \frac{1}{MN} \sum_j q(z^d_i|x_j) \\
+       + \sum_d \frac{1}{M} \sum_i \log \frac{1}{MN} \sum_j q(z^d_i|x_j)
+         - \sum_d \frac{1}{M} \sum_i \log p(z^d) \\
+       = \frac{1}{M} \sum_i \log q(z|x_i) - \sum_d \frac{1}{M} \sum_i \log p(z^d) \\
+        + (\beta - 1) * \frac{1}{M} \sum_i \log \frac{1}{MN} \sum_j q(z_i|x_j) \\
+        - (\beta - 1) * \sum_d \frac{1}{M} \sum_i \log \frac{1}{MN} \sum_j q(z^d_i|x_j) \\
 
     The sets of variables :math:`x`, :math:`y` and :math:`z` refer to:
         :math:`x`: The set of conditioned nodes that are present in `p` but

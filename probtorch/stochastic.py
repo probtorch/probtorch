@@ -2,6 +2,7 @@ from collections import OrderedDict, MutableMapping
 from .util import batch_sum, partial_sum, log_mean_exp
 import abc
 import re
+import math
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
 
@@ -326,12 +327,13 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
-    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None):
+    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, N=None):
         if batch_dim is None:
             return self.log_joint(sample_dim, batch_dim, nodes)
         if nodes is None:
             nodes = self._nodes
-
+        if N is None:
+            N = 60000.0 # Fuck my life!
         log_joint = 0.0
         log_marginals = 0.0
         log_prod_marginals = 0.0
@@ -342,6 +344,7 @@ class Trace(MutableMapping):
                     raise ValueError(('Batch averages can only be computed '
                                       'for random variables.'))
                 v = self._nodes[n].value
+                B = v.size()[batch_dim]
                 if sample_dim is None:
                     keep_dims = (0, batch_dim + 1)
                 else:
@@ -351,8 +354,8 @@ class Trace(MutableMapping):
                 log_pairwise = node.dist.log_prob(v_pairs)
                 sum_log_prob = partial_sum(log_pairwise, keep_dims)
                 log_m = log_mean_exp(sum_log_prob,
-                                     batch_dim + 1).transpose(0, batch_dim)
-                log_pm = batch_sum(log_mean_exp(log_pairwise, batch_dim + 1),
+                                     batch_dim + 1).transpose(0, batch_dim).add(math.log(B/N))
+                log_pm = batch_sum(log_mean_exp(log_pairwise, batch_dim + 1).add(math.log(B/N)),
                                    sample_dim + 1, 0)
                 if node.mask is not None:
                     sum_log_prob = sum_log_prob * node.mask
@@ -361,7 +364,7 @@ class Trace(MutableMapping):
                 log_joint = log_joint + sum_log_prob
                 log_marginals = log_marginals + log_m
                 log_prod_marginals = log_prod_marginals + log_pm
-        log_joint = log_mean_exp(log_joint, batch_dim + 1).transpose(0, batch_dim)
+        log_joint = log_mean_exp(log_joint, batch_dim + 1).transpose(0, batch_dim).add(math.log(B/N))
         return log_joint, log_marginals, log_prod_marginals
 
 

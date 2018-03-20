@@ -2,15 +2,22 @@ import io
 import os
 import sys
 from shutil import rmtree
-
+import setuptools.command.build_py
 from setuptools import find_packages, setup, Command
-import probtorch.version
+
+
+def get_version():
+    import subprocess
+    rev = subprocess.check_output("git rev-parse --short HEAD".split())
+    version = "0.0+" + str(rev.strip().decode('utf-8'))
+    return version
+
 
 # Package meta-data.
 NAME = 'probtorch'
 DESCRIPTION = 'Probabilistic Torch is library for deep generative models that extends PyTorch'
 URL = 'https://github.com/probtorch/probtorch'
-VERSION = probtorch.version.__version__
+VERSION = get_version()
 
 REQUIRED = [
     'torch',
@@ -62,6 +69,21 @@ class UploadCommand(Command):
         sys.exit()
 
 
+class build_py(setuptools.command.build_py.build_py):
+
+    def run(self):
+        self.create_version_file()
+        setuptools.command.build_py.build_py.run(self)
+
+    @staticmethod
+    def create_version_file():
+        print('-- Building version ' + VERSION)
+        version_path = os.path.join(here, 'probtorch', 'version.py')
+        print('VERSION PATH:{}'.format(version_path))
+        with open(version_path, 'w') as f:
+            f.write("__version__ = '{}'\n".format(VERSION))
+
+
 setup(
     name=NAME,
     version=VERSION,
@@ -88,6 +110,6 @@ setup(
     # $ setup.py publish support.
     cmdclass={
         'upload': UploadCommand,
+        'build_py': build_py
     },
 )
-

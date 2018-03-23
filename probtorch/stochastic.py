@@ -333,7 +333,7 @@ class Trace(MutableMapping):
         if nodes is None:
             nodes = self._nodes
         if N is None:
-            N = 60000.0 # Fuck my life!
+            raise ValueError("log batch marginal requires the number of training data: N")
         log_joint = 0.0
         log_marginals = 0.0
         log_prod_marginals = 0.0
@@ -367,6 +367,27 @@ class Trace(MutableMapping):
         log_joint = log_mean_exp(log_joint, batch_dim + 1).transpose(0, batch_dim).add(math.log(B/N))
         return log_joint, log_marginals, log_prod_marginals
 
+    def log_batch_marginal2(self, N, sample_dim=None, batch_dim=None, nodes=None):
+        # DOESN'T respect sample_dim and batch_dim -- assumes None, 0
+        if nodes is None:
+            nodes = self._nodes
+        log_marginals = 0.0
+        log_marginals_d = 0.0
+        for n in nodes:
+            if n in self._nodes:
+                node = self._nodes[n]
+                if not isinstance(node, RandomVariable):
+                    raise ValueError(('Batch averages can only be computed '
+                                      'for random variables.'))
+                v = self._nodes[n].value
+                v_ex = v.expand(v.size(0), *v.size()).contiguous()
+                l_p_d = node.dist.log_prob(v_ex)
+                l_p = partial_sum(l_p_d, [0, 1])
+                l_p_marginal = log_mean_exp(l_p, 0) - math.log(N)
+                l_p_marginal_d = partial_sum(log_mean_exp(l_p_d, 0) - math.log(N), [0])
+                log_marginals = log_marginals + l_p_marginal
+                log_marginals_d = log_marginals_d + l_p_marginal_d
+        return log_marginals, log_marginals_d
 
 
 def _autogen_trace_methods():

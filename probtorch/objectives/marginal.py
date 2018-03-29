@@ -118,8 +118,8 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 
     log_qy = log_weights
     log_py = p.log_joint(sample_dim, batch_dim, y)
     z = [n for n in q.sampled() if n in p]
-    _,_, log_avg_pzd_prod = p.log_batch_marginal(sample_dim, batch_dim, z)
-    log_joint_avg_qz, log_avg_qz, log_avg_qzd_prod = q.log_batch_marginal(sample_dim, batch_dim, z, N)
+    _,_, log_avg_pzd_prod = p.log_batch_marginal(sample_dim, batch_dim, z, N=N)
+    log_joint_avg_qz, log_avg_qz, log_avg_qzd_prod = q.log_batch_marginal(sample_dim, batch_dim, z, N=N)
     log_pz = p.log_joint(sample_dim, batch_dim, z)
     log_qz = q.log_joint(sample_dim, batch_dim, z)
     objective = (beta[0] * ((log_avg_qz - log_avg_qzd_prod) -

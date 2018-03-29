@@ -346,25 +346,31 @@ class Trace(MutableMapping):
                 v = self._nodes[n].value
                 B = v.size()[batch_dim]
                 if sample_dim is None:
-                    keep_dims = (0, batch_dim + 1)
+                    keep_dims = (0, 1)
                 else:
-                    keep_dims = (0, sample_dim + 1, batch_dim + 1)
+                    keep_dims = (0, 1, sample_dim + 2)
                 # ToDo: can we do this with a view (instead of transpose)?
+                # Note: In order to add the digonal, we need to keep B dims next to each other
+                # There MUST be a better way to add to diagonal than log_pairwise[range(B), range(B)] += ...
                 v_pairs = v.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
-                log_pairwise = node.dist.log_prob(v_pairs)
+                log_pairwise = node.dist.log_prob(v_pairs).transpose(1, batch_dim+1)
                 sum_log_prob = partial_sum(log_pairwise, keep_dims)
+                log_joint = log_joint + sum_log_prob
+                sum_log_prob[range(B),range(B)] += math.log(B/(N-1))
                 log_m = log_mean_exp(sum_log_prob,
-                                     batch_dim + 1).transpose(0, batch_dim).add(math.log(B/N))
-                log_pm = batch_sum(log_mean_exp(log_pairwise, batch_dim + 1).add(math.log(B/N)),
+                                     1).transpose(0, batch_dim).add(math.log((N-1)/N))
+                log_pairwise[range(B), range(B)] += math.log(B/(N-1))
+                log_pm = batch_sum(log_mean_exp(log_pairwise, 1).add(math.log((N-1)/N)),
                                    sample_dim + 1, 0)
                 if node.mask is not None:
                     sum_log_prob = sum_log_prob * node.mask
                     log_m = log_m * node.mask
                     log_pm = log_pm * node.mask
-                log_joint = log_joint + sum_log_prob
                 log_marginals = log_marginals + log_m
                 log_prod_marginals = log_prod_marginals + log_pm
-        log_joint = log_mean_exp(log_joint, batch_dim + 1).transpose(0, batch_dim).add(math.log(B/N))
+
+        log_joint[range(B),range(B)] += math.log(B/(N-1))
+        log_joint = log_mean_exp(log_joint, 1).transpose(0, batch_dim).add(math.log((N-1)/N))
         return log_joint, log_marginals, log_prod_marginals
 
     def log_batch_marginal2(self, N, sample_dim=None, batch_dim=None, nodes=None):

@@ -323,8 +323,8 @@ class Trace(MutableMapping):
 
 
 def _autogen_trace_methods():
-    from . import distributions as _distributions
-    from .distributions.distribution import Distribution as _Distribution
+    import torch as _torch
+    from torch import distributions as _distributions
     import inspect as _inspect
 
     def param_doc(doc):
@@ -340,23 +340,15 @@ def _autogen_trace_methods():
         return "\n".join(doc_body) + "\n"
 
     for name, obj in _inspect.getmembers(_distributions):
-        if hasattr(obj, "__bases__") and _Distribution in obj.__bases__:
+        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and (obj.has_rsample == True):
             f_name = name.lower()
-            doc_head = ("Creates a %s-distributed random variable node and "
-                        "returns its value.\n\nFor more information, refer to the "
-                        ":class:`~probtorch.distributions.%s` distribution.\n\n" % (f_name, name))
-            doc_body = param_doc(obj.__doc__)
-            doc_foot = (
-                "    value(:obj:`Variable`, optional): Value of the RandomVariable instance.\n"
-                "        When specified, the variable is observed. When not specified a value is\n"
-                "        sampled and the variable is not observed.\n"
-                "    name(string, optional): The name for the RandomVariable. When not\n"
-                "        specified, a unique name is dynamically generated.")
-            doc = doc_head + doc_body + doc_foot
+            doc="""Generates a random variable of type torch.distributions.%s""" % name
             try:
-                asp = _inspect.getfullargspec(obj.__init__)  # try python3 first
+                # try python 3 first
+                asp = _inspect.getfullargspec(obj.__init__)  
             except Exception as e:
-                asp = _inspect.getargspec(obj.__init__)  # python 2
+                # python 2
+                asp = _inspect.getargspec(obj.__init__)  
 
             arg_split = -len(asp.defaults) if asp.defaults else None
             args = ', '.join(asp.args[:arg_split])
@@ -366,7 +358,7 @@ def _autogen_trace_methods():
                 kwargs = ', '.join(['%s=%s' % (n, v) for n, v in pairs])
                 args = args + ', ' + kwargs
 
-            env = {'obj': obj}
+            env = {'obj': obj, 'torch': _torch}
             s = ("""def f({0}, name=None, value=None):
                     return self.variable(obj, {1}, name=name, value=value)""")
             input_args = ', '.join(asp.args[1:])
@@ -375,6 +367,5 @@ def _autogen_trace_methods():
             f.__name__ = f_name
             f.__doc__ = doc
             setattr(Trace, f_name, f)
-
 
 _autogen_trace_methods()

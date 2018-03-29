@@ -12,7 +12,7 @@ class Stochastic(object):
     Attributes:
         value(:obj:Variable): The value of the variable.
         log_prob(:obj:Variable): The log probability mass or density.
-    """ 
+    """
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractproperty
@@ -367,5 +367,6 @@ def _autogen_trace_methods():
             f.__name__ = f_name
             f.__doc__ = doc
             setattr(Trace, f_name, f)
+
 
 _autogen_trace_methods()

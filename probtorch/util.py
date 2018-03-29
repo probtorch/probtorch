@@ -80,7 +80,6 @@ def log_sum_exp(value, dim=None, keepdim=False):
 
     value.exp().sum(dim, keepdim).log()
     """
-    # TODO: torch.max(value, dim=None) threw an error at time of writing
     if dim is not None:
         m, _ = torch.max(value, dim=dim, keepdim=True)
         value0 = value - m

@@ -12,7 +12,7 @@ class Stochastic(object):
     Attributes:
         value(:obj:Variable): The value of the variable.
         log_prob(:obj:Variable): The log probability mass or density.
-    """
+    """ 
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractproperty
@@ -244,7 +244,7 @@ class Trace(MutableMapping):
         value = kwargs.pop('value', None)
         dist = Dist(*args, **kwargs)
         if value is None:
-            value = dist.sample()
+            value = dist.rsample()
             observed = False
         else:
             observed = True

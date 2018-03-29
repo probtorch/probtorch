@@ -361,5 +361,8 @@ def _autogen_trace_methods():
             f.__doc__ = doc
             setattr(Trace, f_name, f)
 
+    # add alias for relaxed_one_hot_categorical
+    setattr(Trace, 'concrete', Trace.relaxed_one_hot_categorical)
+
 
 _autogen_trace_methods()

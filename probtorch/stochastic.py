@@ -326,29 +326,22 @@ def _autogen_trace_methods():
     import torch as _torch
     from torch import distributions as _distributions
     import inspect as _inspect
+    import re as _re
 
-    def param_doc(doc):
-        keep = False
-        doc_body = ["Arguments:"]
-        for line in doc.split('\n'):
-            if keep and not line.split():
-                break
-            elif not keep and (line.strip().lower() == 'parameters:'):
-                keep = True
-            elif keep:
-                doc_body.append("    " + line.strip())
-        return "\n".join(doc_body) + "\n"
+    def camel_to_snake(name):
+        s1 = _re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return _re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     for name, obj in _inspect.getmembers(_distributions):
         if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and (obj.has_rsample == True):
-            f_name = name.lower()
+            f_name = camel_to_snake(name).lower()
             doc="""Generates a random variable of type torch.distributions.%s""" % name
             try:
                 # try python 3 first
-                asp = _inspect.getfullargspec(obj.__init__)  
+                asp = _inspect.getfullargspec(obj.__init__)
             except Exception as e:
                 # python 2
-                asp = _inspect.getargspec(obj.__init__)  
+                asp = _inspect.getargspec(obj.__init__)
 
             arg_split = -len(asp.defaults) if asp.defaults else None
             args = ', '.join(asp.args[:arg_split])

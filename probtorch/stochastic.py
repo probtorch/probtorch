@@ -41,7 +41,7 @@ class RandomVariable(Stochastic):
     def __init__(self, dist, value, observed=False, mask=None, use_pmf=True):
         self._dist = dist
         self._value = value
-        if dist.relaxed and use_pmf:
+        if use_pmf and hasattr(dist, 'log_pmf'):
             self._log_prob = dist.log_pmf(value)
         else:
             self._log_prob = dist.log_prob(value)
@@ -341,10 +341,8 @@ def _autogen_trace_methods():
         return self.base_dist._categorical.log_prob(max_index)
 
     _distributions.RelaxedBernoulli.log_pmf = relaxed_bernoulli_log_pmf
-    _distributions.RelaxedBernoulli.relaxed = True
 
     _distributions.RelaxedOneHotCategorical.log_pmf = relaxed_categorical_log_pmf
-    _distributions.RelaxedOneHotCategorical.relaxed = True
 
     def camel_to_snake(name):
         s1 = _re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)

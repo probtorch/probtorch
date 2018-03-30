@@ -81,7 +81,7 @@ def log_like(q, p, sample_dim=None, batch_dim=None, log_weights=None,
         p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
-        log_weights(:obj:`Variable` or number, optional): Log weights for
+        log_weights(:obj:`Tensor` or number, optional): Log weights for
             samples. Calculated when not specified.
         size_average (bool, optional): By default, the objective is averaged
             over items in the minibatch. When set to false, the objective is
@@ -135,7 +135,7 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None,
         p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
-        log_weights(:obj:`Variable` or number, optional): Log weights for
+        log_weights(:obj:`Tensor` or number, optional): Log weights for
             samples. Calculated when not specified.
         size_average (bool, optional): By default, the objective is averaged
             over items in the minibatch. When set to false, the objective is
@@ -195,7 +195,7 @@ def ml(q, sample_dim=None, batch_dim=None, log_weights=None,
         p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
-        log_weights(:obj:`Variable` or number, optional): Log weights
+        log_weights(:obj:`Tensor` or number, optional): Log weights
             for samples. Calculated when not specified.
         size_average (bool, optional): By default, the objective is averaged
             over items in the minibatch. When set to false, the objective is

@@ -71,7 +71,7 @@ class RandomVariable(Stochastic):
 
     def __repr__(self):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
-                                                     repr(self._value.data))
+                                                     repr(self._value))
 
 
 class Factor(Stochastic):
@@ -100,7 +100,7 @@ class Factor(Stochastic):
         return self._mask
 
     def __repr__(self):
-        return "Factor with log probability: %s" % repr(self._log_prob.data)
+        return "Factor with log probability: %s" % repr(self._log_prob)
 
 
 class Loss(Stochastic):
@@ -136,7 +136,7 @@ class Loss(Stochastic):
         return self._mask
 
     def __repr__(self):
-        return "Loss with log probability: %s" % repr(self._log_prob.data)
+        return "Loss with log probability: %s" % repr(self._log_prob)
 
 
 class Trace(MutableMapping):
@@ -163,7 +163,7 @@ class Trace(MutableMapping):
         if name in self._nodes:
             raise ValueError("Trace already contains a node with "
                              "name: " + name)
-        if (node.log_prob.data != node.log_prob.data).sum() > 0:
+        if (node.log_prob != node.log_prob).sum() > 0:
             raise ValueError("NaN log prob encountered in node"
                              "with name: " + name)
         self._nodes[name] = node
@@ -186,8 +186,8 @@ class Trace(MutableMapping):
         for n in self:
             node = self[n]
             dname = type(node.dist).__name__
-            dtype = node.value.data.type()
-            dsize = 'x'.join([str(d) for d in node.value.data.size()])
+            dtype = node.value.type()
+            dsize = 'x'.join([str(d) for d in node.value.size()])
             val_repr = "[%s of size %s]" % (dtype, dsize)
             node_repr = "%s(%s)" % (dname, val_repr)
             item_reprs.append("%s: %s" % (repr(n), node_repr))

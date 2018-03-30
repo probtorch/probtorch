@@ -38,9 +38,13 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, observed=False, mask=None):
+    def __init__(self, dist, value, observed=False, mask=None, use_pmf=True):
         self._dist = dist
         self._value = value
+        if dist.relaxed and use_pmf:
+            self._log_prob = dist.log_pmf(value)
+        else:
+            self._log_prob = dist.log_prob(value)
         self._log_prob = dist.log_prob(value)
         self._observed = observed
         self._mask = mask
@@ -327,6 +331,19 @@ def _autogen_trace_methods():
     from torch import distributions as _distributions
     import inspect as _inspect
     import re as _re
+
+    # monkey patch relaxed distribtions
+    def relaxed_bernoulli_log_pmf(self, value):
+        return (value > self.probs).type('torch.FloatTensor')
+
+    def relaxed_categorical_log_pmf(self, value):
+        return self.probs[value.max(-1)[1]]
+
+    _distributions.RelaxedBernoulli.log_pmf = relaxed_bernoulli_log_pmf
+    _distributions.RelaxedBernoulli.relaxed = True
+
+    _distributions.RelaxedOneHotCategorical.log_pmf = relaxed_categorical_log_pmf
+    _distributions.RelaxedOneHotCategorical.relaxed = True
 
     def camel_to_snake(name):
         s1 = _re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)

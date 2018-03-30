@@ -1,6 +1,7 @@
 """Implements the Univariate Laplace distribution."""
 
 import torch
+import math
 from torch.autograd import Variable
 from probtorch.distributions.distribution import *
 from probtorch.util import expanded_size
@@ -32,7 +33,8 @@ class Laplace(Distribution):
     Attributes:
         mean(:obj:`Variable`): Mean (mu).
         mode(:obj:`Variable`): Mode (mu).
-        variance(:obj:`Variable`): Variance (equal to 2b**2)
+        variance(:obj:`Variable`): Variance (equals to 2b**2)
+        entropy(:obj:`Variable`): Using broadcasting rule it return the Shannon entropy (equals to log(2*sigma*e))
     """
 
     def __init__(self, mu, b):
@@ -69,6 +71,11 @@ class Laplace(Distribution):
     def variance(self):
         return 2.0 * self._b**2
 
+    @property
+    def entropy(self):
+        log = math.log if isinstance(self._b, Number) else torch.log
+        return 1. + math.log(2.0) + log(self._b)
+
     def sample(self, *sizes):
         size = expanded_size(sizes, self._size)
         uniform = Variable(torch.Tensor(*size)
@@ -82,6 +89,13 @@ class Laplace(Distribution):
 
     def log_prob(self, value):
         log = math.log if isinstance(self._b, Number) else torch.log
-        log_normalizer = log(2.0 * self._b)
+        log_normalizer = math.log(2.0) + log(self._b)
         log_weight = -torch.abs(value - self._mu) / self._b
         return log_weight - log_normalizer
+
+    def cdf(self, value):
+        # Cumulative distribution function. Given the variable X,
+        # the CDF is: CDF(x): = P[X <= x]
+        z = (value - self.mu) / self._b
+        return (0.5 + 0.5 * torch.sign(z) *
+                (1. - torch.exp(-torch.abs(z))))

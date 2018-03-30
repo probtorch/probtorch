@@ -20,6 +20,30 @@ class TestLaplace(TestCase):
                               b.data.numpy())
         self.assertEqual(res1, res2)
 
+    def test_cdf(self):
+        mu = Variable(torch.randn(100))
+        b = torch.exp(Variable(torch.randn(100)))
+        value = Variable(torch.randn(100))
+        dist = Laplace(mu, b)
+
+        # test cdf
+        res1 = dist.cdf(value).data
+        res2 = laplace.cdf(value.data.numpy(),
+                           mu.data.numpy(),
+                           b.data.numpy())
+        self.assertEqual(res1, res2)
+
+    def test_entropy(self):
+        mu = Variable(torch.randn(100))
+        b = torch.exp(Variable(torch.randn(100)))
+        dist = Laplace(mu, b)
+
+        # test entropy
+        res1 = dist.entropy.data
+        res2 = laplace.entropy(mu.data.numpy(),
+                               b.data.numpy())
+        self.assertEqual(res1, res2)
+
     def test_sample(self):
         # TODO: this only works for scalar continuous distributions,
         # just to make sure things are ok until we write a better sample test
@@ -56,7 +80,6 @@ class TestLaplace(TestCase):
                 dist = Laplace(mu, b)
                 log_prob = dist.log_prob(value)
                 self.assertEqual(sizes, log_prob.size())
-
 
 if __name__ == '__main__':
     run_tests()

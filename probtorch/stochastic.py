@@ -186,19 +186,9 @@ class Trace(MutableMapping):
         item_reprs = []
         for n in self:
             node = self[n]
-<<<<<<< HEAD
-            if isinstance(node, Loss) or isinstance(node, Factor):
-                dname = type(node).__name__
-            else:
-                dname = type(node.dist).__name__
-
-            dtype = node.value.data.type()
-            dsize = 'x'.join([str(d) for d in node.value.data.size()])
-=======
             dname = type(node.dist).__name__
             dtype = node.value.type()
             dsize = 'x'.join([str(d) for d in node.value.size()])
->>>>>>> 7aee2006e0c655db7e3fee280e2f8edfe12eb28f
             val_repr = "[%s of size %s]" % (dtype, dsize)
             node_repr = "%s(%s)" % (dname, val_repr)
             item_reprs.append("%s: %s" % (repr(n), node_repr))
@@ -362,13 +352,16 @@ class Trace(MutableMapping):
                 # Note: In order to add the digonal, we need to keep B dims next to each other
                 # There MUST be a better way to add to diagonal than log_pairwise[range(B), range(B)] += ...
                 v_pairs = v.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
-                log_pairwise = node.dist.log_prob(v_pairs).transpose(1, batch_dim+1)
+                if hasattr(node.dist, 'log_pmf'):
+                    log_pairwise = node.dist.log_pmf(v_pairs).transpose(1, batch_dim+1)
+                else:
+                    log_pairwise = node.dist.log_prob(v_pairs).transpose(1, batch_dim+1)
                 sum_log_prob = partial_sum(log_pairwise, keep_dims)
                 log_joint = log_joint + sum_log_prob
-                sum_log_prob[range(B),range(B)] += math.log(B/(N-1))
+                # sum_log_prob[range(B),range(B)] += math.log(B/(N-1))
                 log_m = log_mean_exp(sum_log_prob,
                                      1).transpose(0, batch_dim).add(math.log((N-1)/N))
-                log_pairwise[range(B), range(B)] += math.log(B/(N-1))
+                # log_pairwise[range(B), range(B)] += math.log(B/(N-1))
                 log_pm = batch_sum(log_mean_exp(log_pairwise, 1).add(math.log((N-1)/N)),
                                    sample_dim + 1, 0)
                 if node.mask is not None:
@@ -378,7 +371,7 @@ class Trace(MutableMapping):
                 log_marginals = log_marginals + log_m
                 log_prod_marginals = log_prod_marginals + log_pm
 
-        log_joint[range(B),range(B)] += math.log(B/(N-1))
+        # log_joint[range(B),range(B)] += math.log(B/(N-1))
         log_joint = log_mean_exp(log_joint, 1).transpose(0, batch_dim).add(math.log((N-1)/N))
         return log_joint, log_marginals, log_prod_marginals
 

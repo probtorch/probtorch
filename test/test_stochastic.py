@@ -1,7 +1,7 @@
 import torch
 from torch.autograd import Variable
 import probtorch
-from probtorch.distributions import Normal
+from torch.distributions import Normal
 from probtorch.util import log_mean_exp
 from common import TestCase, run_tests
 import math
@@ -18,8 +18,8 @@ class TestLogBatchMarginal(TestCase):
         sigma1 = torch.exp(Variable(torch.randn(S, B, D)))
         sigma2 = torch.exp(Variable(torch.randn(S, B, D)))
         q = probtorch.Trace()
-        q.normal(mu=mu1, sigma=sigma1, name='z1')
-        q.normal(mu=mu2, sigma=sigma2, name='z2')
+        q.normal(mu1, sigma1, name='z1')
+        q.normal(mu2, sigma2, name='z2')
         z1 = q['z1']
         z2 = q['z2']
         value1 = z1.value

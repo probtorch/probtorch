@@ -337,7 +337,8 @@ def _autogen_trace_methods():
         return (value > self.probs).type('torch.FloatTensor')
 
     def relaxed_categorical_log_pmf(self, value):
-        return self.probs[value.max(-1)[1]]
+        _, max_index = value.max(-1)
+        return self.base_dist._categorical.log_prob(max_index)
 
     _distributions.RelaxedBernoulli.log_pmf = relaxed_bernoulli_log_pmf
     _distributions.RelaxedBernoulli.relaxed = True

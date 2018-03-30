@@ -45,7 +45,6 @@ class RandomVariable(Stochastic):
             self._log_prob = dist.log_pmf(value)
         else:
             self._log_prob = dist.log_prob(value)
-        self._log_prob = dist.log_prob(value)
         self._observed = observed
         self._mask = mask
 

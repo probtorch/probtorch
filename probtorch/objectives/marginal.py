@@ -4,7 +4,7 @@ from probtorch.objectives.montecarlo import log_like, ml
 
 
 def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=(1.0, 1.0, 1.0, 1.0, 1.0),
-         size_average=True, reduce=True, N=None):
+         size_average=True, reduce=True, bias=None):
     r"""Calculates an importance sampling estimate of the semi-supervised
     evidence lower bound (ELBO), Bob Combo
 
@@ -68,13 +68,13 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=(1.0, 1.0, 1.0, 
     return (log_like(q, p, sample_dim, batch_dim, log_weights,
                      size_average=size_average, reduce=reduce) -
             kl(q, p, sample_dim, batch_dim, log_weights, beta,
-               size_average=size_average, reduce=reduce, N=N) +
+               size_average=size_average, reduce=reduce, bias=bias) +
             (beta[4] + alpha) * ml(q, sample_dim, batch_dim, log_weights,
                                    size_average=size_average, reduce=reduce))
 
 
 def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 1.0, 1.0, 1.0),
-         size_average=True, reduce=True, N=None):
+         size_average=True, reduce=True, bias=None):
     r"""
     Computes a Monte Carlo estimate of the unnormalized KL divergence
     described for variable z.
@@ -118,8 +118,8 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 
     log_qy = log_weights
     log_py = p.log_joint(sample_dim, batch_dim, y)
     z = [n for n in q.sampled() if n in p]
-    _,_, log_avg_pzd_prod = p.log_batch_marginal(sample_dim, batch_dim, z, N=N)
-    log_joint_avg_qz, log_avg_qz, log_avg_qzd_prod = q.log_batch_marginal(sample_dim, batch_dim, z, N=N)
+    _, _, log_avg_pzd_prod = p.log_batch_marginal(sample_dim, batch_dim, z, bias=bias)
+    log_joint_avg_qz, log_avg_qz, log_avg_qzd_prod = q.log_batch_marginal(sample_dim, batch_dim, z, bias=bias)
     log_pz = p.log_joint(sample_dim, batch_dim, z)
     log_qz = q.log_joint(sample_dim, batch_dim, z)
     objective = (beta[0] * ((log_avg_qz - log_avg_qzd_prod) -

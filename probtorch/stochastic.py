@@ -326,14 +326,12 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
-    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, N=None):
+    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
         if batch_dim is None:
             return self.log_joint(sample_dim, batch_dim, nodes)
         if nodes is None:
             nodes = self._nodes
-        if N is None:
-            raise ValueError("log batch marginal requires the number of training data: N")
-        log_joint = 0.0
+        log_pw_joints = 0.0
         log_marginals = 0.0
         log_prod_marginals = 0.0
         for n in nodes:
@@ -342,38 +340,43 @@ class Trace(MutableMapping):
                 if not isinstance(node, RandomVariable):
                     raise ValueError(('Batch averages can only be computed '
                                       'for random variables.'))
-                v = self._nodes[n].value
-                B = v.size()[batch_dim]
+                # convert values of size (*, B, **) to size (B, *, 1, **)
+                value = node.value.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
+                if hasattr(node.dist, 'log_pmf'):
+                    # log pairwise probabilities of size (B, B, *, **)
+                    log_pw = node.dist.log_pmf(value).transpose(1, batch_dim + 1)
+                else:
+                    # log pairwise probabilities of size (B, B, *, **)
+                    log_pw = node.dist.log_prob(value).transpose(1, batch_dim + 1)
                 if sample_dim is None:
                     keep_dims = (0, 1)
                 else:
                     keep_dims = (0, 1, sample_dim + 2)
-                # ToDo: can we do this with a view (instead of transpose)?
-                # Note: In order to add the digonal, we need to keep B dims next to each other
-                # There MUST be a better way to add to diagonal than log_pairwise[range(B), range(B)] += ...
-                v_pairs = v.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
-                if hasattr(node.dist, 'log_pmf'):
-                    log_pairwise = node.dist.log_pmf(v_pairs).transpose(1, batch_dim+1)
-                else:
-                    log_pairwise = node.dist.log_prob(v_pairs).transpose(1, batch_dim+1)
-                sum_log_prob = partial_sum(log_pairwise, keep_dims)
-                log_joint = log_joint + sum_log_prob
-                # sum_log_prob[range(B),range(B)] += math.log(B/(N-1))
-                log_m = log_mean_exp(sum_log_prob,
-                                     1).transpose(0, batch_dim).add(math.log((N-1)/N))
-                # log_pairwise[range(B), range(B)] += math.log(B/(N-1))
-                log_pm = batch_sum(log_mean_exp(log_pairwise, 1).add(math.log((N-1)/N)),
-                                   sample_dim + 1, 0)
-                if node.mask is not None:
-                    sum_log_prob = sum_log_prob * node.mask
-                    log_m = log_m * node.mask
-                    log_pm = log_pm * node.mask
-                log_marginals = log_marginals + log_m
-                log_prod_marginals = log_prod_marginals + log_pm
+                batch_size = node.value.size(batch_dim)
+                # log pairwise joint probabilities (B, B) or (B, B, S)
+                log_pw_joint = partial_sum(log_pw, keep_dims)
 
-        # log_joint[range(B),range(B)] += math.log(B/(N-1))
-        log_joint = log_mean_exp(log_joint, 1).transpose(0, batch_dim).add(math.log((N-1)/N))
-        return log_joint, log_marginals, log_prod_marginals
+                if node.mask is not None:
+                    log_pw_joint = log_pw_joint * node.mask
+                log_pw_joints = log_pw_joints + log_pw_joint
+
+                # perform bias correction for diagonal terms
+                log_pw_joint[range(batch_size), range(batch_size)] -= math.log(bias)
+                log_pw[range(batch_size), range(batch_size)] -= math.log(bias)
+                # log average over pairs (B) or (S, B)
+                log_marginal = log_mean_exp(log_pw_joint, 1).transpose(0, batch_dim)
+                # log product over marginals (B) or (S, B)
+                log_prod_marginal = batch_sum(log_mean_exp(log_pw, 1),
+                                              sample_dim + 1, 0)
+                if node.mask is not None:
+                    log_marginal = log_marginal * node.mask
+                    log_prod_marginal = log_prod_marginal * node.mask
+                log_marginals = log_marginals + log_marginal
+                log_prod_marginals = log_prod_marginals + log_prod_marginal
+        # perform bias correction for log pairwise joint
+        log_pw_joints[range(batch_size), range(batch_size)] -= math.log(bias)
+        log_pw_joints = log_mean_exp(log_pw_joints, 1).transpose(0, batch_dim)
+        return log_pw_joints, log_marginals, log_prod_marginals
 
 
 def _autogen_trace_methods():

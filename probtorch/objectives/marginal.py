@@ -63,6 +63,8 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=(1.0, 1.0, 1.0, 
         reduce (bool, optional): By default, the objective is averaged or
            summed over items in the minibatch. When reduce is False, losses
            are returned without averaging or summation.
+        bias (float): Bias correction term. Should be set to (N - 1) / (B - 1), 
+           where N is the size of the full data set and B is the batch size. 
     """
     log_weights = q.log_joint(sample_dim, batch_dim, q.conditioned())
     return (log_like(q, p, sample_dim, batch_dim, log_weights,
@@ -111,6 +113,8 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 
         reduce (bool, optional): By default, the objective is averaged or
            summed over items in the minibatch. When reduce is False, losses
            are returned without averaging or summation.
+        bias (float): Bias correction term. Should be set to (N - 1) / (B - 1), 
+           where N is the size of the full data set and B is the batch size. 
     """
     y = q.conditioned()
     if log_weights is None:

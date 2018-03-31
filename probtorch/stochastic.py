@@ -1,6 +1,8 @@
 from collections import OrderedDict, MutableMapping
-from .util import batch_sum
+from .util import batch_sum, partial_sum, log_mean_exp
 import abc
+import re
+import math
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
 
@@ -323,6 +325,61 @@ class Trace(MutableMapping):
                     log_p = log_p * node.mask
                 log_prob = log_prob + log_p
         return log_prob
+
+    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
+        """Computes log batch marginal probabilities. Returns the log marginal joint 
+        probability, the log product of marginals for individual variables, and the 
+        log product over both variables and individual dimensions."""
+        if batch_dim is None:
+            return self.log_joint(sample_dim, batch_dim, nodes)
+        if nodes is None:
+            nodes = self._nodes
+        log_pw_joints = 0.0
+        log_marginals = 0.0
+        log_prod_marginals = 0.0
+        for n in nodes:
+            if n in self._nodes:
+                node = self._nodes[n]
+                if not isinstance(node, RandomVariable):
+                    raise ValueError(('Batch averages can only be computed '
+                                      'for random variables.'))
+                # convert values of size (*, B, **) to size (B, *, 1, **)
+                value = node.value.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
+                if hasattr(node.dist, 'log_pmf'):
+                    # log pairwise probabilities of size (B, B, *, **)
+                    log_pw = node.dist.log_pmf(value).transpose(1, batch_dim + 1)
+                else:
+                    # log pairwise probabilities of size (B, B, *, **)
+                    log_pw = node.dist.log_prob(value).transpose(1, batch_dim + 1)
+                if sample_dim is None:
+                    keep_dims = (0, 1)
+                else:
+                    keep_dims = (0, 1, sample_dim + 2)
+                batch_size = node.value.size(batch_dim)
+                # log pairwise joint probabilities (B, B) or (B, B, S)
+                log_pw_joint = partial_sum(log_pw, keep_dims)
+
+                if node.mask is not None:
+                    log_pw_joint = log_pw_joint * node.mask
+                log_pw_joints = log_pw_joints + log_pw_joint
+
+                # perform bias correction for diagonal terms
+                log_pw_joint[range(batch_size), range(batch_size)] -= math.log(bias)
+                log_pw[range(batch_size), range(batch_size)] -= math.log(bias)
+                # log average over pairs (B) or (S, B)
+                log_marginal = log_mean_exp(log_pw_joint, 1).transpose(0, batch_dim)
+                # log product over marginals (B) or (S, B)
+                log_prod_marginal = batch_sum(log_mean_exp(log_pw, 1),
+                                              sample_dim + 1, 0)
+                if node.mask is not None:
+                    log_marginal = log_marginal * node.mask
+                    log_prod_marginal = log_prod_marginal * node.mask
+                log_marginals = log_marginals + log_marginal
+                log_prod_marginals = log_prod_marginals + log_prod_marginal
+        # perform bias correction for log pairwise joint
+        log_pw_joints[range(batch_size), range(batch_size)] -= math.log(bias)
+        log_pw_joints = log_mean_exp(log_pw_joints, 1).transpose(0, batch_dim)
+        return log_pw_joints, log_marginals, log_prod_marginals
 
 
 def _autogen_trace_methods():

@@ -16,7 +16,8 @@ __all__ = ['broadcast_size',
 def expand_inputs(f):
     """Decorator that expands all input tensors to add a sample dimensions"""
     @wraps(f)
-    def g(*args, num_samples=None, **kwargs):
+    def g(*args, **kwargs):
+        num_samples = kwargs.pop('num_samples', None)
         if num_samples is not None:
             new_args = []
             new_kwargs = {}

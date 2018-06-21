@@ -49,6 +49,7 @@ class RandomVariable(Stochastic):
             self._log_prob = dist.log_prob(value)
         self._observed = observed
         self._mask = mask
+        self._reparameterized = dist.has_rsample
 
     @property
     def dist(self):
@@ -69,6 +70,10 @@ class RandomVariable(Stochastic):
     @property
     def mask(self):
         return self._mask
+
+    @property
+    def reparameterized(self):
+        return self._reparameterized
 
     def __repr__(self):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,

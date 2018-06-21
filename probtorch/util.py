@@ -2,6 +2,8 @@
 import torch
 from numbers import Number
 import math
+from functools import wraps
+
 
 __all__ = ['broadcast_size',
            'expanded_size',
@@ -9,6 +11,30 @@ __all__ = ['broadcast_size',
            'partial_sum',
            'log_sum_exp',
            'log_mean_exp']
+
+
+def expand_inputs(f):
+    """Decorator that expands all input tensors to add a sample dimensions"""
+    @wraps(f)
+    def g(*args, num_samples=None, **kwargs):
+        if num_samples is not None:
+            new_args = []
+            new_kwargs = {}
+            for arg in args:
+                if hasattr(arg, 'expand'):
+                    new_args.append(arg.expand(num_samples, *arg.size()))
+                else:
+                    new_args.append(arg)
+            for k in kwargs:
+                arg = kwargs[k]
+                if hasattr(arg, 'expand'):
+                    new_args.append(arg.expand(num_samples, *arg.size()))
+                else:
+                    new_args.append(arg)
+            return f(*new_args, num_samples=num_samples, **new_kwargs)
+        else:
+            return f(*args, num_samples=None, **kwargs)
+    return g
 
 
 def broadcast_size(a, b):
@@ -47,7 +73,12 @@ def expanded_size(expand_size, orig_size):
 
 def batch_sum(v, sample_dim=None, batch_dim=None):
     keep_dims = [d for d in [sample_dim, batch_dim] if d is not None]
-    return partial_sum(v, keep_dims=keep_dims)
+    v_sum = partial_sum(v, keep_dims=keep_dims)
+    # ToDo: Can we do this more elegantly?
+    if len(keep_dims) == 2 and sample_dim > batch_dim:
+        return v_sum.permute(1, 0)
+    else:
+        return v_sum
 
 
 def partial_sum(v, keep_dims=[]):
@@ -80,7 +111,6 @@ def log_sum_exp(value, dim=None, keepdim=False):
 
     value.exp().sum(dim, keepdim).log()
     """
-    # TODO: torch.max(value, dim=None) threw an error at time of writing
     if dim is not None:
         m, _ = torch.max(value, dim=dim, keepdim=True)
         value0 = value - m

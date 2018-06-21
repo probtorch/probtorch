@@ -8,6 +8,7 @@ Objectives
 .. automodule:: probtorch.objectives
 .. currentmodule:: probtorch.objectives
 
+
 `Monte Carlo`
 ~~~~~~~~~~~~~~
 
@@ -24,3 +25,12 @@ Objectives
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: probtorch.objectives.importance.elbo
+
+
+`Batch Marginal`
+~~~~~~~~~~~~~~~~
+
+.. autofunction:: probtorch.objectives.marginal.elbo
+
+.. autofunction:: probtorch.objectives.montecarlo.kl
+

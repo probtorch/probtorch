@@ -1,6 +1,8 @@
 from collections import OrderedDict, MutableMapping
-from .util import batch_sum
+from .util import batch_sum, partial_sum, log_mean_exp
 import abc
+import re
+import math
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
 
@@ -38,10 +40,13 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, observed=False, mask=None):
+    def __init__(self, dist, value, observed=False, mask=None, use_pmf=True):
         self._dist = dist
         self._value = value
-        self._log_prob = dist.log_prob(value)
+        if use_pmf and hasattr(dist, 'log_pmf'):
+            self._log_prob = dist.log_pmf(value)
+        else:
+            self._log_prob = dist.log_prob(value)
         self._observed = observed
         self._mask = mask
 
@@ -67,7 +72,7 @@ class RandomVariable(Stochastic):
 
     def __repr__(self):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
-                                                     repr(self._value.data))
+                                                     repr(self._value))
 
 
 class Factor(Stochastic):
@@ -96,7 +101,7 @@ class Factor(Stochastic):
         return self._mask
 
     def __repr__(self):
-        return "Factor with log probability: %s" % repr(self._log_prob.data)
+        return "Factor with log probability: %s" % repr(self._log_prob)
 
 
 class Loss(Stochastic):
@@ -132,7 +137,7 @@ class Loss(Stochastic):
         return self._mask
 
     def __repr__(self):
-        return "Loss with log probability: %s" % repr(self._log_prob.data)
+        return "Loss with log probability: %s" % repr(self._log_prob)
 
 
 class Trace(MutableMapping):
@@ -159,7 +164,7 @@ class Trace(MutableMapping):
         if name in self._nodes:
             raise ValueError("Trace already contains a node with "
                              "name: " + name)
-        if (node.log_prob.data != node.log_prob.data).sum() > 0:
+        if (node.log_prob != node.log_prob).sum() > 0:
             raise ValueError("NaN log prob encountered in node"
                              "with name: " + name)
         self._nodes[name] = node
@@ -182,8 +187,8 @@ class Trace(MutableMapping):
         for n in self:
             node = self[n]
             dname = type(node.dist).__name__
-            dtype = node.value.data.type()
-            dsize = 'x'.join([str(d) for d in node.value.data.size()])
+            dtype = node.value.type()
+            dsize = 'x'.join([str(d) for d in node.value.size()])
             val_repr = "[%s of size %s]" % (dtype, dsize)
             node_repr = "%s(%s)" % (dname, val_repr)
             item_reprs.append("%s: %s" % (repr(n), node_repr))
@@ -244,7 +249,7 @@ class Trace(MutableMapping):
         value = kwargs.pop('value', None)
         dist = Dist(*args, **kwargs)
         if value is None:
-            value = dist.sample()
+            value = dist.rsample()
             observed = False
         else:
             observed = True
@@ -321,42 +326,94 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
+    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
+        """Computes log batch marginal probabilities. Returns the log marginal joint 
+        probability, the log product of marginals for individual variables, and the 
+        log product over both variables and individual dimensions."""
+        if batch_dim is None:
+            return self.log_joint(sample_dim, batch_dim, nodes)
+        if nodes is None:
+            nodes = self._nodes
+        log_pw_joints = 0.0
+        log_marginals = 0.0
+        log_prod_marginals = 0.0
+        for n in nodes:
+            if n in self._nodes:
+                node = self._nodes[n]
+                if not isinstance(node, RandomVariable):
+                    raise ValueError(('Batch averages can only be computed '
+                                      'for random variables.'))
+                # convert values of size (*, B, **) to size (B, *, 1, **)
+                value = node.value.unsqueeze(batch_dim + 1).transpose(batch_dim, 0)
+                if hasattr(node.dist, 'log_pmf'):
+                    # log pairwise probabilities of size (B, B, *, **)
+                    log_pw = node.dist.log_pmf(value).transpose(1, batch_dim + 1)
+                else:
+                    # log pairwise probabilities of size (B, B, *, **)
+                    log_pw = node.dist.log_prob(value).transpose(1, batch_dim + 1)
+                if sample_dim is None:
+                    keep_dims = (0, 1)
+                else:
+                    keep_dims = (0, 1, sample_dim + 2)
+                batch_size = node.value.size(batch_dim)
+                # log pairwise joint probabilities (B, B) or (B, B, S)
+                log_pw_joint = partial_sum(log_pw, keep_dims)
+
+                if node.mask is not None:
+                    log_pw_joint = log_pw_joint * node.mask
+                log_pw_joints = log_pw_joints + log_pw_joint
+
+                # perform bias correction for diagonal terms
+                log_pw_joint[range(batch_size), range(batch_size)] -= math.log(bias)
+                log_pw[range(batch_size), range(batch_size)] -= math.log(bias)
+                # log average over pairs (B) or (S, B)
+                log_marginal = log_mean_exp(log_pw_joint, 1).transpose(0, batch_dim)
+                # log product over marginals (B) or (S, B)
+                log_prod_marginal = batch_sum(log_mean_exp(log_pw, 1),
+                                              sample_dim + 1, 0)
+                if node.mask is not None:
+                    log_marginal = log_marginal * node.mask
+                    log_prod_marginal = log_prod_marginal * node.mask
+                log_marginals = log_marginals + log_marginal
+                log_prod_marginals = log_prod_marginals + log_prod_marginal
+        # perform bias correction for log pairwise joint
+        log_pw_joints[range(batch_size), range(batch_size)] -= math.log(bias)
+        log_pw_joints = log_mean_exp(log_pw_joints, 1).transpose(0, batch_dim)
+        return log_pw_joints, log_marginals, log_prod_marginals
+
 
 def _autogen_trace_methods():
-    from . import distributions as _distributions
-    from .distributions.distribution import Distribution as _Distribution
+    import torch as _torch
+    from torch import distributions as _distributions
     import inspect as _inspect
+    import re as _re
 
-    def param_doc(doc):
-        keep = False
-        doc_body = ["Arguments:"]
-        for line in doc.split('\n'):
-            if keep and not line.split():
-                break
-            elif not keep and (line.strip().lower() == 'parameters:'):
-                keep = True
-            elif keep:
-                doc_body.append("    " + line.strip())
-        return "\n".join(doc_body) + "\n"
+    # monkey patch relaxed distribtions
+    def relaxed_bernoulli_log_pmf(self, value):
+        return (value > self.probs).type('torch.FloatTensor')
+
+    def relaxed_categorical_log_pmf(self, value):
+        _, max_index = value.max(-1)
+        return self.base_dist._categorical.log_prob(max_index)
+
+    _distributions.RelaxedBernoulli.log_pmf = relaxed_bernoulli_log_pmf
+
+    _distributions.RelaxedOneHotCategorical.log_pmf = relaxed_categorical_log_pmf
+
+    def camel_to_snake(name):
+        s1 = _re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return _re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     for name, obj in _inspect.getmembers(_distributions):
-        if hasattr(obj, "__bases__") and _Distribution in obj.__bases__:
-            f_name = name.lower()
-            doc_head = ("Creates a %s-distributed random variable node and "
-                        "returns its value.\n\nFor more information, refer to the "
-                        ":class:`~probtorch.distributions.%s` distribution.\n\n" % (f_name, name))
-            doc_body = param_doc(obj.__doc__)
-            doc_foot = (
-                "    value(:obj:`Variable`, optional): Value of the RandomVariable instance.\n"
-                "        When specified, the variable is observed. When not specified a value is\n"
-                "        sampled and the variable is not observed.\n"
-                "    name(string, optional): The name for the RandomVariable. When not\n"
-                "        specified, a unique name is dynamically generated.")
-            doc = doc_head + doc_body + doc_foot
+        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and (obj.has_rsample == True):
+            f_name = camel_to_snake(name).lower()
+            doc="""Generates a random variable of type torch.distributions.%s""" % name
             try:
-                asp = _inspect.getfullargspec(obj.__init__)  # try python3 first
+                # try python 3 first
+                asp = _inspect.getfullargspec(obj.__init__)
             except Exception as e:
-                asp = _inspect.getargspec(obj.__init__)  # python 2
+                # python 2
+                asp = _inspect.getargspec(obj.__init__)
 
             arg_split = -len(asp.defaults) if asp.defaults else None
             args = ', '.join(asp.args[:arg_split])
@@ -366,7 +423,7 @@ def _autogen_trace_methods():
                 kwargs = ', '.join(['%s=%s' % (n, v) for n, v in pairs])
                 args = args + ', ' + kwargs
 
-            env = {'obj': obj}
+            env = {'obj': obj, 'torch': _torch}
             s = ("""def f({0}, name=None, value=None):
                     return self.variable(obj, {1}, name=name, value=value)""")
             input_args = ', '.join(asp.args[1:])
@@ -375,6 +432,9 @@ def _autogen_trace_methods():
             f.__name__ = f_name
             f.__doc__ = doc
             setattr(Trace, f_name, f)
+
+    # add alias for relaxed_one_hot_categorical
+    setattr(Trace, 'concrete', Trace.relaxed_one_hot_categorical)
 
 
 _autogen_trace_methods()

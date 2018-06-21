@@ -254,7 +254,10 @@ class Trace(MutableMapping):
         value = kwargs.pop('value', None)
         dist = Dist(*args, **kwargs)
         if value is None:
-            value = dist.rsample()
+            if dist.has_rsample:
+                value = dist.rsample()
+            else:
+                value = dist.sample()
             observed = False
         else:
             observed = True
@@ -308,7 +311,8 @@ class Trace(MutableMapping):
             if not isinstance(node, RandomVariable) or node.observed:
                 yield name
 
-    def log_joint(self, sample_dim=None, batch_dim=None, nodes=None):
+    def log_joint(self, sample_dim=None, batch_dim=None, nodes=None,
+                  reparameterized=True):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
@@ -323,6 +327,9 @@ class Trace(MutableMapping):
         for n in nodes:
             if n in self._nodes:
                 node = self._nodes[n]
+                if isinstance(node, RandomVariable) and reparameterized and\
+                   not node.reparameterized:
+                    raise ValueError('All random variables must be sampled by reparameterization.')
                 log_p = batch_sum(node.log_prob,
                                   sample_dim,
                                   batch_dim)

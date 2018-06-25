@@ -192,7 +192,6 @@ def ml(q, sample_dim=None, batch_dim=None, log_weights=None,
 
     Arguments:
         q(:obj:`Trace`): The encoder trace.
-        p(:obj:`Trace`): The decoder trace.
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
         log_weights(:obj:`Tensor` or number, optional): Log weights

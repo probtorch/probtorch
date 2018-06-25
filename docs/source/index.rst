@@ -13,7 +13,6 @@ Probabilistic Torch Documentation
    :caption: Package Reference
 
    stochastic
-   distributions
    objectives
    util
 

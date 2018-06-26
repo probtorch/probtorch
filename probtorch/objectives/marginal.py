@@ -55,7 +55,7 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=(1.0, 1.0, 1.0, 
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
         alpha(float, default 0.1): Coefficient for the ML term.
-        beta(tuple, default 1.0):  Coefficients (length 5) for the KL term.
+        beta(tuple, default (1.0, 1.0, 1.0, 1.0, 1.0, 1.0)): Coefficients (length 5) for the KL term.
         size_average (bool, optional): By default, the objective is averaged
             over items in the minibatch. When set to false, the objective is
             instead summed over the minibatch.

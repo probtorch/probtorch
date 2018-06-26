@@ -10,7 +10,7 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=(1.0, 1.0, 1.0, 
 
     Given a set of unobserved variables
 
-    .. math:: \boldsymbol{z} = \{z^{1}, z^{2} \cdots z^{N} \}
+    .. math:: \boldsymbol{z} = \{z^{1}, z^{2} \cdots z^{M} \}
 
     The (HFVAE) ELBO expands as:
 

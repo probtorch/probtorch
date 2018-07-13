@@ -186,9 +186,16 @@ class Trace(MutableMapping):
         item_reprs = []
         for n in self:
             node = self[n]
-            dname = type(node.dist).__name__
-            dtype = node.value.type()
-            dsize = 'x'.join([str(d) for d in node.value.size()])
+            if isinstance(node, RandomVariable):
+                dname = type(node.dist).__name__
+            else:
+                dname = type(node).__name__
+            if isinstance(node, Factor):
+                dtype = node.log_prob.type()
+                dsize = 'x'.join([str(d) for d in node.log_prob.size()])
+            else:
+                dtype = node.value.type()
+                dsize = 'x'.join([str(d) for d in node.value.size()])
             val_repr = "[%s of size %s]" % (dtype, dsize)
             node_repr = "%s(%s)" % (dname, val_repr)
             item_reprs.append("%s: %s" % (repr(n), node_repr))
@@ -327,8 +334,8 @@ class Trace(MutableMapping):
         return log_prob
 
     def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
-        """Computes log batch marginal probabilities. Returns the log marginal joint 
-        probability, the log product of marginals for individual variables, and the 
+        """Computes log batch marginal probabilities. Returns the log marginal joint
+        probability, the log product of marginals for individual variables, and the
         log product over both variables and individual dimensions."""
         if batch_dim is None:
             return self.log_joint(sample_dim, batch_dim, nodes)

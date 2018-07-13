@@ -55,7 +55,7 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=(1.0, 1.0, 1.0, 
         sample_dim(int, optional): The dimension containing individual samples.
         batch_dim(int, optional): The dimension containing batch items.
         alpha(float, default 0.1): Coefficient for the ML term.
-        beta(tuple, default (1.0, 1.0, 1.0, 1.0, 1.0, 1.0)): Coefficients (length 5) for the KL term.
+        beta(tuple, default (1.0, 1.0, 1.0, 1.0, 1.0)): Coefficients (length 5) for the KL term.
         size_average (bool, optional): By default, the objective is averaged
             over items in the minibatch. When set to false, the objective is
             instead summed over the minibatch.
@@ -119,6 +119,11 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 
            are returned without averaging or summation.
         bias (float): Bias correction term. Should be set to (N - 1) / (B - 1),
            where N is the size of the full data set and B is the batch size.
+
+    References:
+        [2] Babak Esmaeili, Hao Wu, Sarthak Jain, Alican Bozkurt, N. Siddharth,
+        Brooks Paige, Dana H. Brooks, Jennifer Dy, Jan-Willem van de Meent,
+        Structured Disentangled Representations.
     """
     y = q.conditioned()
     if log_weights is None:
@@ -126,7 +131,7 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 
     log_qy = log_weights
     log_py = p.log_joint(sample_dim, batch_dim, y)
     z = [n for n in q.sampled() if n in p]
-    _, _, log_avg_pzd_prod = p.log_batch_marginal(sample_dim, batch_dim, z, bias=bias)
+    log_joint_avg_pz, log_avg_pz, log_avg_pzd_prod = p.log_batch_marginal(sample_dim, batch_dim, z, bias=1.0)
     log_joint_avg_qz, log_avg_qz, log_avg_qzd_prod = q.log_batch_marginal(sample_dim, batch_dim, z, bias=bias)
     log_pz = p.log_joint(sample_dim, batch_dim, z)
     log_qz = q.log_joint(sample_dim, batch_dim, z)
@@ -134,7 +139,8 @@ def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 
                             (log_pz - log_avg_pzd_prod)) +
                  beta[1] * (log_avg_qzd_prod - log_avg_pzd_prod) +
                  beta[2] * (log_qz - log_joint_avg_qz) +
-                 beta[3] * (log_joint_avg_qz - log_avg_qz) +
+                 beta[3] * ((log_joint_avg_qz - log_avg_qz) -
+                            (log_joint_avg_pz - log_pz)) +
                  beta[4] * (log_qy - log_py))
     if sample_dim is not None:
         if isinstance(log_weights, Number):

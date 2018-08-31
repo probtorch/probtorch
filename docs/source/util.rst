@@ -7,6 +7,11 @@ Util
 .. automodule:: probtorch.util
 .. currentmodule:: probtorch.util
 
+:hidden:`expand_inputs`
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: probtorch.util.expand_inputs
+
 :hidden:`broadcast_size`
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

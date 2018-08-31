@@ -31,6 +31,3 @@ Objectives
 ~~~~~~~~~~~~~~~~
 
 .. autofunction:: probtorch.objectives.marginal.elbo
-
-.. autofunction:: probtorch.objectives.montecarlo.kl
-

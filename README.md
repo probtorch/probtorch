@@ -6,7 +6,7 @@ Probabilistic Torch is library for deep generative models that extends [PyTorch]
 
 The design of Probabilistic Torch is intended to be as PyTorch-like as possible. Probabilistic Torch models are written just like you would write any PyTorch model, but make use of three additional constructs:
 
-1. A library of *reparameterized* [distributions](https://github.com/probtorch/probtorch/tree/master/probtorch/distributions) that implement methods for sampling and evaluation of the log probability mass and density functions
+1. A library of *reparameterized* [distributions](https://pytorch.org/docs/stable/distributions.html) that implement methods for sampling and evaluation of the log probability mass and density functions (now available in PyTorch)
 
 2. A [Trace](https://github.com/probtorch/probtorch/blob/master/probtorch/stochastic.py#L119) data structure, which is both used to instantiate and store random variables.
 
@@ -17,7 +17,7 @@ This repository accompanies the NIPS 2017 paper:
 ```latex
 @inproceedings{siddharth2017learning,
     title = {Learning Disentangled Representations with Semi-Supervised Deep Generative Models},
-    author = {Siddharth, N. and Paige, Brooks and van de Meent, Jan-Willem and Desmaison, Alban and Goodman, Noah D. and Kohli, Pushmeet and Wood, 
+    author = {Siddharth, N. and Paige, Brooks and van de Meent, Jan-Willem and Desmaison, Alban and Goodman, Noah D. and Kohli, Pushmeet and Wood,
 Frank and Torr, Philip},
     booktitle = {Advances in Neural Information Processing Systems 30},
     editor = {I. Guyon and U. V. Luxburg and S. Bengio and H. Wallach and R. Fergus and S. Vishwanathan and R. Garnett},
@@ -29,16 +29,17 @@ Frank and Torr, Philip},
 ```
 
 
-# Contributors 
+# Contributors
 
 (in order of joining)
 
 - Jan-Willem van de Meent
-- Siddharth Narayanaswamy 
+- Siddharth Narayanaswamy
 - Brooks Paige
 - Alban Desmaison
 - Alican Bozkurt
 - Amirsina Torfi
+- Babak Esmaeli
 
 
 # Installation
@@ -50,9 +51,9 @@ Frank and Torr, Philip},
 pip install git+git://github.com/probtorch/probtorch
 ```
 
-3. Refer to the `examples/` subdirectory for [Jupyter](http://jupyter.org) notebooks that illustrate usage. 
+3. Refer to the `examples/` subdirectory for [Jupyter](http://jupyter.org) notebooks that illustrate usage.
 
-4. To build and read the API documentation, please do the following 
+4. To build and read the API documentation, please do the following
 ```
 git clone git://github.com/probtorch/probtorch
 cd probtorch/docs
@@ -64,7 +65,7 @@ open build/html/index.html
 
 # Mini-Tutorial: Semi-supervised MNIST
 
-Models in Probabilistic Torch define variational autoencoders. Both the encoder and the decoder model can be implemented as standard PyTorch models that subclass `nn.Module`. 
+Models in Probabilistic Torch define variational autoencoders. Both the encoder and the decoder model can be implemented as standard PyTorch models that subclass `nn.Module`.
 
 In the `__init__` method we initialize network layers, just as we would in a PyTorch model. In the `forward` method, we additionally initialize a `Trace` variable, which is a write-once dictionary-like object. The `Trace` data structure implements methods for instantiating named random variables, whose values and log probabilities are stored under the specifed key.
 
@@ -79,35 +80,34 @@ class Encoder(nn.Module):
     def __init__(self, num_pixels=784, num_hidden=50, num_digits=10, num_style=2):
         super(self.__class__, self).__init__()
         self.h = nn.Sequential(
-                    nn.Linear(num_pixels, num_hidden), 
+                    nn.Linear(num_pixels, num_hidden),
                     nn.ReLU())
         self.y_log_weights = nn.Linear(num_hidden, num_digits)
         self.z_mean = nn.Linear(num_hidden + num_digits, num_style)
         self.z_log_std = nn.Linear(num_hidden + num_digits, num_style)
-    
+
     def forward(self, x, y_values=None, num_samples=10):
         q = probtorch.Trace()
         x = x.expand(num_samples, *x.size())
         if y_values is not None:
             y_values = y_values.expand(num_samples, *y_values.size())
         h = self.h(x)
-        y = q.concrete(self.y_log_weights(h), 0.66,
+        y = q.concrete(logits=self.y_log_weights(h), temperature=0.66,
                        value=y_values, name='y')
         h2 = torch.cat([y, h], -1)
-        z = q.normal(self.z_mean(h2), 
-                     torch.exp(self.z_log_std(h2)), 
+        z = q.normal(loc=self.z_mean(h2),
+                     scale=torch.exp(self.z_log_std(h2)),
                      name='z')
         return q
 ```
 
-In the code above, the method `q.concrete` samples or observes from a Concrete/Gumbel-Softmax relaxation of the discrete distribution, depending on whether supervision values `y_values` are provided. The method `q.normal` samples from a univariate normal. 
+In the code above, the method `q.concrete` samples or observes from a Concrete/Gumbel-Softmax relaxation of the discrete distribution, depending on whether supervision values `y_values` are provided. The method `q.normal` samples from a univariate normal.
 
 The resulting trace `q` now contains two entries `q['y']` and `q['z']`, which are instances of a `RandomVariable` class, which stores both the value and the log probability associated with the variable. The stored values are now used to condition execution of the decoder model:
 ```python
-from torch.autograd import Variable
 
 def binary_cross_entropy(x_mean, x, EPS=1e-9):
-    return - (torch.log(x_mean + EPS) * x + 
+    return - (torch.log(x_mean + EPS) * x +
               torch.log(1 - x_mean + EPS) * (1 - x)).sum(-1)
 
 class Decoder(nn.Module):
@@ -125,9 +125,10 @@ class Decoder(nn.Module):
         if q is None:
             q = probtorch.Trace()
         p = probtorch.Trace()
-        y = p.concrete(Variable(torch.zeros(x.size(0), self.num_digits)), 0.66,
+        y = p.concrete(logits=torch.zeros(x.size(0), self.num_digits),
+                       temperature=0.66,
                        value=q['y'], name='y')
-        z = p.normal(0.0, 1.0, value=q['z'], name='z')
+        z = p.normal(loc=0.0, scale=1.0, value=q['z'], name='z')
         h = self.h(torch.cat([y, z], -1))
         p.loss(binary_cross_entropy, self.x_mean(h), x, name='x')
         return p
@@ -165,5 +166,3 @@ For a more details, see the Jupyter notebooks in the `examples/` subdirectory.
 # References
 
 [1] Kingma, Diederik P, Danilo J Rezende, Shakir Mohamed, and Max Welling. 2014. “Semi-Supervised Learning with Deep Generative Models.” http://arxiv.org/abs/1406.5298.
-
-

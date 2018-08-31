@@ -16,7 +16,8 @@ __all__ = ['broadcast_size',
 def expand_inputs(f):
     """Decorator that expands all input tensors to add a sample dimensions"""
     @wraps(f)
-    def g(*args, num_samples=None, **kwargs):
+    def g(*args, **kwargs):
+        num_samples = kwargs.get('num_samples', None)
         if num_samples is not None:
             new_args = []
             new_kwargs = {}
@@ -28,12 +29,13 @@ def expand_inputs(f):
             for k in kwargs:
                 arg = kwargs[k]
                 if hasattr(arg, 'expand'):
-                    new_args.append(arg.expand(num_samples, *arg.size()))
+                    new_kwargs[k] = arg.expand(num_samples, *arg.size())
                 else:
-                    new_args.append(arg)
-            return f(*new_args, num_samples=num_samples, **new_kwargs)
+                    new_kwargs[k] = arg
+                new_kwargs['num_samples'] = num_samples
+            return f(*new_args, **new_kwargs)
         else:
-            return f(*args, num_samples=None, **kwargs)
+            return f(*args, **kwargs)
     return g
 
 

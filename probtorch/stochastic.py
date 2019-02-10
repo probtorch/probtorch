@@ -338,14 +338,14 @@ class Trace(MutableMapping):
             if not isinstance(node, RandomVariable) or node.observed:
                 yield name
 
-    def log_joint(self, sample_dim=None, batch_dim=None, nodes=None,
+    def log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
                   reparameterized=True):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
             nodes(iterable, optional): The subset of nodes to sum over. When \
             unspecified, the sum over all nodes is returned.
-            sample_dim(int): The dimension that enumerates samples.
+            sample_dims(tuple): The dimensions that enumerate samples.
             batch_dim(int): The dimension that enumerates batch items.
         """
         if nodes is None:
@@ -358,19 +358,19 @@ class Trace(MutableMapping):
                    not node.reparameterized:
                     raise ValueError('All random variables must be sampled by reparameterization.')
                 log_p = batch_sum(node.log_prob,
-                                  sample_dim,
+                                  sample_dims,
                                   batch_dim)
                 if batch_dim is not None and node.mask is not None:
                     log_p = log_p * node.mask
                 log_prob = log_prob + log_p
         return log_prob
 
-    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
+    def log_batch_marginal(self, sample_dims=None, batch_dim=None, nodes=None, bias=1.0):
         """Computes log batch marginal probabilities. Returns the log marginal joint
         probability, the log product of marginals for individual variables, and the
         log product over both variables and individual dimensions."""
         if batch_dim is None:
-            return self.log_joint(sample_dim, batch_dim, nodes)
+            return self.log_joint(sample_dims, batch_dim, nodes)
         if nodes is None:
             nodes = self._nodes
         log_pw_joints = 0.0

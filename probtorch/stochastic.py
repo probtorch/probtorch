@@ -1,11 +1,17 @@
 from collections import OrderedDict, MutableMapping
 from .util import batch_sum, partial_sum, log_mean_exp
 import abc
+from enum import Enum
 import re
 import math
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
 
+
+class Provenance(Enum):
+    SAMPLED = 0
+    OBSERVED = 1
+    REUSED = 2
 
 class Stochastic(object):
     """Stochastic variables wrap Pytorch Variables to associate a log probability

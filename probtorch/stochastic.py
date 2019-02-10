@@ -46,14 +46,15 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, observed=False, mask=None, use_pmf=True):
+    def __init__(self, dist, value, provenance=Provenance.SAMPLED, mask=None,
+                 use_pmf=True):
         self._dist = dist
         self._value = value
         if use_pmf and hasattr(dist, 'log_pmf'):
             self._log_prob = dist.log_pmf(value)
         else:
             self._log_prob = dist.log_prob(value)
-        self._observed = observed
+        self._provenance = provenance
         self._mask = mask
         self._reparameterized = dist.has_rsample
 
@@ -67,7 +68,11 @@ class RandomVariable(Stochastic):
 
     @property
     def observed(self):
-        return self._observed
+        return self._provenance == Provenance.OBSERVED
+
+    @property
+    def provenance(self):
+        return self._provenance
 
     @property
     def log_prob(self):

@@ -276,12 +276,12 @@ class Trace(MutableMapping):
                 value = dist.rsample()
             else:
                 value = dist.sample()
-            observed = False
+            provenance = Provenance.SAMPLED
         else:
-            observed = True
+            provenance = kwargs.pop('provenance', Provenance.OBSERVED)
             if isinstance(value, RandomVariable):
                 value = value.value
-        node = RandomVariable(dist, value, observed, mask=self._mask)
+        node = RandomVariable(dist, value, provenance, mask=self._mask)
         if name is None:
             self.append(node)
         else:
@@ -306,6 +306,14 @@ class Trace(MutableMapping):
             if isinstance(self._nodes[name], RandomVariable):
                 yield name
 
+    def reused(self):
+        """Returns a generator over RandomVariable nodes"""
+        for name in self._nodes:
+            node = self._nodes[name]
+            if isinstance(node, RandomVariable) and\
+               node.provenance == Provenance.REUSED:
+                yield name
+
     def observed(self):
         """Returns a generator over RandomVariable nodes"""
         for name in self._nodes:
@@ -317,7 +325,8 @@ class Trace(MutableMapping):
         """Returns a generator over RandomVariable nodes"""
         for name in self._nodes:
             node = self._nodes[name]
-            if isinstance(node, RandomVariable) and not node.observed:
+            if isinstance(node, RandomVariable) and\
+               node.provenance == Provenance.SAMPLED:
                 yield name
 
     def conditioned(self):

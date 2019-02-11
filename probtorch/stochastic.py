@@ -54,6 +54,7 @@ class RandomVariable(Stochastic):
             self._log_prob = dist.log_pmf(value)
         else:
             self._log_prob = dist.log_prob(value)
+        assert isinstance(provenance, Provenance)
         self._provenance = provenance
         self._mask = mask
         self._reparameterized = dist.has_rsample

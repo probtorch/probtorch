@@ -1,11 +1,17 @@
 from collections import OrderedDict, MutableMapping
 from .util import batch_sum, partial_sum, log_mean_exp
 import abc
+from enum import Enum
 import re
 import math
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
 
+
+class Provenance(Enum):
+    SAMPLED = 0
+    OBSERVED = 1
+    REUSED = 2
 
 class Stochastic(object):
     """Stochastic variables wrap Pytorch Variables to associate a log probability
@@ -40,14 +46,16 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, observed=False, mask=None, use_pmf=True):
+    def __init__(self, dist, value, provenance=Provenance.SAMPLED, mask=None,
+                 use_pmf=True):
         self._dist = dist
         self._value = value
         if use_pmf and hasattr(dist, 'log_pmf'):
             self._log_prob = dist.log_pmf(value)
         else:
             self._log_prob = dist.log_prob(value)
-        self._observed = observed
+        assert isinstance(provenance, Provenance)
+        self._provenance = provenance
         self._mask = mask
         self._reparameterized = dist.has_rsample
 
@@ -61,7 +69,11 @@ class RandomVariable(Stochastic):
 
     @property
     def observed(self):
-        return self._observed
+        return self._provenance == Provenance.OBSERVED
+
+    @property
+    def provenance(self):
+        return self._provenance
 
     @property
     def log_prob(self):
@@ -259,18 +271,20 @@ class Trace(MutableMapping):
         """Creates a new RandomVariable node"""
         name = kwargs.pop('name', None)
         value = kwargs.pop('value', None)
+        provenance = kwargs.pop('provenance', None)
         dist = Dist(*args, **kwargs)
         if value is None:
             if dist.has_rsample:
                 value = dist.rsample()
             else:
                 value = dist.sample()
-            observed = False
+            provenance = Provenance.SAMPLED
         else:
-            observed = True
+            if not provenance:
+                provenance = Provenance.OBSERVED
             if isinstance(value, RandomVariable):
                 value = value.value
-        node = RandomVariable(dist, value, observed, mask=self._mask)
+        node = RandomVariable(dist, value, provenance, mask=self._mask)
         if name is None:
             self.append(node)
         else:
@@ -295,18 +309,27 @@ class Trace(MutableMapping):
             if isinstance(self._nodes[name], RandomVariable):
                 yield name
 
+    def reused(self):
+        """Returns a generator over reused RandomVariable nodes"""
+        for name in self._nodes:
+            node = self._nodes[name]
+            if isinstance(node, RandomVariable) and\
+               node.provenance == Provenance.REUSED:
+                yield name
+
     def observed(self):
-        """Returns a generator over RandomVariable nodes"""
+        """Returns a generator over observed RandomVariable nodes"""
         for name in self._nodes:
             node = self._nodes[name]
             if isinstance(node, RandomVariable) and node.observed:
                 yield name
 
     def sampled(self):
-        """Returns a generator over RandomVariable nodes"""
+        """Returns a generator over sampled RandomVariable nodes"""
         for name in self._nodes:
             node = self._nodes[name]
-            if isinstance(node, RandomVariable) and not node.observed:
+            if isinstance(node, RandomVariable) and\
+               node.provenance == Provenance.SAMPLED:
                 yield name
 
     def conditioned(self):
@@ -318,14 +341,14 @@ class Trace(MutableMapping):
             if not isinstance(node, RandomVariable) or node.observed:
                 yield name
 
-    def log_joint(self, sample_dim=None, batch_dim=None, nodes=None,
+    def log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
                   reparameterized=True):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
             nodes(iterable, optional): The subset of nodes to sum over. When \
             unspecified, the sum over all nodes is returned.
-            sample_dim(int): The dimension that enumerates samples.
+            sample_dims(tuple): The dimensions that enumerate samples.
             batch_dim(int): The dimension that enumerates batch items.
         """
         if nodes is None:
@@ -338,19 +361,19 @@ class Trace(MutableMapping):
                    not node.reparameterized:
                     raise ValueError('All random variables must be sampled by reparameterization.')
                 log_p = batch_sum(node.log_prob,
-                                  sample_dim,
+                                  sample_dims,
                                   batch_dim)
                 if batch_dim is not None and node.mask is not None:
                     log_p = log_p * node.mask
                 log_prob = log_prob + log_p
         return log_prob
 
-    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
+    def log_batch_marginal(self, sample_dims=None, batch_dim=None, nodes=None, bias=1.0):
         """Computes log batch marginal probabilities. Returns the log marginal joint
         probability, the log product of marginals for individual variables, and the
         log product over both variables and individual dimensions."""
         if batch_dim is None:
-            return self.log_joint(sample_dim, batch_dim, nodes)
+            return self.log_joint(sample_dims, batch_dim, nodes)
         if nodes is None:
             nodes = self._nodes
         log_pw_joints = 0.0

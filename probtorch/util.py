@@ -73,8 +73,17 @@ def expanded_size(expand_size, orig_size):
         return expand_size + orig_size
 
 
-def batch_sum(v, sample_dim=None, batch_dim=None):
-    keep_dims = [d for d in [sample_dim, batch_dim] if d is not None]
+def batch_sum(v, sample_dims=None, batch_dims=None):
+    if sample_dims is None:
+        sample_dims = ()
+    elif isinstance(sample_dims, int):
+        sample_dims = (sample_dims,)
+    if batch_dims is None:
+        batch_dims = ()
+    elif isinstance(batch_dims, int):
+        batch_dims = (batch_dims,)
+    assert set(sample_dims).isdisjoint(set(batch_dims))
+    keep_dims = tuple(sorted(set(sample_dims).union(set(batch_dims))))
     v_sum = partial_sum(v, keep_dims=keep_dims)
     # ToDo: Can we do this more elegantly?
     if len(keep_dims) == 2 and sample_dim > batch_dim:

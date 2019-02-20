@@ -310,7 +310,7 @@ class Trace(MutableMapping):
                 yield name
 
     def reused(self):
-        """Returns a generator over RandomVariable nodes"""
+        """Returns a generator over reused RandomVariable nodes"""
         for name in self._nodes:
             node = self._nodes[name]
             if isinstance(node, RandomVariable) and\
@@ -318,14 +318,14 @@ class Trace(MutableMapping):
                 yield name
 
     def observed(self):
-        """Returns a generator over RandomVariable nodes"""
+        """Returns a generator over observed RandomVariable nodes"""
         for name in self._nodes:
             node = self._nodes[name]
             if isinstance(node, RandomVariable) and node.observed:
                 yield name
 
     def sampled(self):
-        """Returns a generator over RandomVariable nodes"""
+        """Returns a generator over sampled RandomVariable nodes"""
         for name in self._nodes:
             node = self._nodes[name]
             if isinstance(node, RandomVariable) and\

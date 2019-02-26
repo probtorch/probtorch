@@ -86,7 +86,7 @@ def batch_sum(v, sample_dims=None, batch_dims=None):
     keep_dims = tuple(sorted(set(sample_dims).union(set(batch_dims))))
     v_sum = partial_sum(v, keep_dims=keep_dims)
     # ToDo: Can we do this more elegantly?
-    if len(keep_dims) == 2 and sample_dim > batch_dim:
+    if len(keep_dims) == 2 and sample_dims[0] > batch_dims[0]:
         return v_sum.permute(1, 0)
     else:
         return v_sum

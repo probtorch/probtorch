@@ -368,12 +368,12 @@ class Trace(MutableMapping):
                 log_prob = log_prob + log_p
         return log_prob
 
-    def log_batch_marginal(self, sample_dims=None, batch_dim=None, nodes=None, bias=1.0):
+    def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
         """Computes log batch marginal probabilities. Returns the log marginal joint
         probability, the log product of marginals for individual variables, and the
         log product over both variables and individual dimensions."""
         if batch_dim is None:
-            return self.log_joint(sample_dims, batch_dim, nodes)
+            return self.log_joint(sample_dim, batch_dim, nodes)
         if nodes is None:
             nodes = self._nodes
         log_pw_joints = 0.0

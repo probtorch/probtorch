@@ -12,6 +12,7 @@ class Provenance(Enum):
     SAMPLED = 0
     OBSERVED = 1
     REUSED = 2
+    RESCORE = 3
 
 class Stochastic(object):
     """Stochastic variables wrap Pytorch Variables to associate a log probability

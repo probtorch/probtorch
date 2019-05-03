@@ -47,18 +47,31 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, provenance=Provenance.SAMPLED, mask=None,
-                 use_pmf=True):
-        self._dist = dist
+    def __init__(self, Dist, value, *dist_args, provenance=Provenance.SAMPLED,
+                 mask=None, use_pmf=True, **dist_kwargs):
+        self._Dist = Dist
+        dist = Dist(*dist_args, **dist_kwargs)
+        if value is None:
+            if dist.has_rsample:
+                value = dist.rsample()
+            else:
+                value = dist.sample()
         self._value = value
         if use_pmf and hasattr(dist, 'log_pmf'):
             self._log_prob = dist.log_pmf(value)
         else:
             self._log_prob = dist.log_prob(value)
+        self._dist = dist
         assert isinstance(provenance, Provenance)
         self._provenance = provenance
         self._mask = mask
         self._reparameterized = dist.has_rsample
+        self._dist_args = dist_args
+        self._dist_kwargs = dist_kwargs
+
+    @property
+    def Dist(self):
+        return self._Dist
 
     @property
     def dist(self):
@@ -87,6 +100,14 @@ class RandomVariable(Stochastic):
     @property
     def reparameterized(self):
         return self._reparameterized
+
+    @property
+    def dist_args(self):
+        return self._dist_args
+
+    @property
+    def dist_kwargs(self):
+        return self._dist_kwargs
 
     def __repr__(self):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
@@ -278,24 +299,20 @@ class Trace(MutableMapping):
         name = kwargs.pop('name', None)
         value = kwargs.pop('value', None)
         provenance = kwargs.pop('provenance', None)
-        dist = Dist(*args, **kwargs)
         if value is None:
-            if dist.has_rsample:
-                value = dist.rsample()
-            else:
-                value = dist.sample()
             provenance = Provenance.SAMPLED
         else:
             if not provenance:
                 provenance = Provenance.OBSERVED
             if isinstance(value, RandomVariable):
                 value = value.value
-        node = RandomVariable(dist, value, provenance, mask=self._mask)
+        node = RandomVariable(Dist, value, *args, provenance=provenance,
+                              mask=self._mask, use_pmf=True, **kwargs)
         if name is None:
             self.append(node)
         else:
             self[name] = node
-        return value
+        return node.value
 
     def factors(self):
         """Returns a generator over Factor nodes"""

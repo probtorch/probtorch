@@ -136,6 +136,7 @@ class Loss(Stochastic):
         self._loss = loss
         self._value = value
         self._log_prob = -loss(value, target)
+        self._target = target
         self._mask = mask
 
     @property
@@ -149,6 +150,10 @@ class Loss(Stochastic):
     @property
     def loss(self):
         return self._log_prob
+
+    @property
+    def target(self):
+        return self._target
 
     @property
     def mask(self):

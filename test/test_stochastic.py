@@ -9,7 +9,7 @@ import math
 
 class TestLogBatchMarginal(TestCase):
     def test_normal(self):
-        N = 100 # Number of training data
+        N = 100  # Number of training data
         S = 3  # sample size
         B = 5  # batch size
         D = 10  # hidden dim
@@ -42,18 +42,17 @@ class TestLogBatchMarginal(TestCase):
                     log_probs1[b1, b2, s] = d1.log_prob(value1[s, b1])
                     log_probs2[b1, b2, s] = d2.log_prob(value2[s, b1])
 
-
         log_sum_1 = log_probs1.sum(3)
         log_sum_2 = log_probs2.sum(3)
 
-        log_joint_2 = log_sum_1 +  log_sum_2
+        log_joint_2 = log_sum_1 + log_sum_2
         log_joint_2[range(B), range(B)] -= math.log(bias)
         log_joint_2 = log_mean_exp(log_joint_2, 1).transpose(0, 1)
 
         log_sum_1[range(B), range(B)] -= math.log(bias)
         log_sum_2[range(B), range(B)] -= math.log(bias)
-        log_mar_z1 = log_mean_exp(log_sum_1, 1).transpose(0, 1) 
-        log_mar_z2 = log_mean_exp(log_sum_2, 1).transpose(0, 1) 
+        log_mar_z1 = log_mean_exp(log_sum_1, 1).transpose(0, 1)
+        log_mar_z2 = log_mean_exp(log_sum_2, 1).transpose(0, 1)
         log_mar_2 = log_mar_z1 + log_mar_z2
 
         log_probs1[range(B), range(B)] -= math.log(bias)

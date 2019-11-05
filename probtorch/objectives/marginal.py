@@ -80,7 +80,7 @@ def elbo(q, p, sample_dim=None, batch_dim=None, alpha=0.1, beta=(1.0, 1.0, 1.0, 
 
 
 def kl(q, p, sample_dim=None, batch_dim=None, log_weights=None, beta=(1.0, 1.0, 1.0, 1.0, 1.0),
-         size_average=True, reduce=True, bias=None):
+       size_average=True, reduce=True, bias=None):
     r"""
     Computes a Monte Carlo estimate of the unnormalized KL divergence
     described for variable z.

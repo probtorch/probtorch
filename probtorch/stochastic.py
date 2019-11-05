@@ -341,8 +341,8 @@ class Trace(MutableMapping):
             if not isinstance(node, RandomVariable) or node.observed:
                 yield name
 
-    def log_joint(self, sample_dim=None, sample_dims=None, batch_dim=None, nodes=None,
-                  reparameterized=True):
+    def log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
+                  reparameterized=True, sample_dim=None):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
@@ -454,7 +454,7 @@ def _autogen_trace_methods():
         return _re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     for name, obj in _inspect.getmembers(_distributions):
-        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and (obj.has_rsample == True):
+        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and obj.has_rsample:
             f_name = camel_to_snake(name).lower()
             doc = """Generates a random variable of type torch.distributions.%s""" % name
             try:

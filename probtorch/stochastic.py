@@ -1,8 +1,8 @@
-from collections import OrderedDict, MutableMapping
+from collections import OrderedDict
+from collections.abc import MutableMapping
 from .util import batch_sum, partial_sum, log_mean_exp
 import abc
 from enum import Enum
-import re
 import math
 
 __all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
@@ -12,6 +12,7 @@ class Provenance(Enum):
     SAMPLED = 0
     OBSERVED = 1
     REUSED = 2
+
 
 class Stochastic(object):
     """Stochastic variables wrap Pytorch Variables to associate a log probability
@@ -342,15 +343,24 @@ class Trace(MutableMapping):
                 yield name
 
     def log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
-                  reparameterized=True):
+                  reparameterized=True, sample_dim=None):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
             nodes(iterable, optional): The subset of nodes to sum over. When \
             unspecified, the sum over all nodes is returned.
             sample_dims(tuple): The dimensions that enumerate samples.
+            sample_dim(int): Same with sample_dims, kept for backwards compatibility.
             batch_dim(int): The dimension that enumerates batch items.
         """
+        if (sample_dim is not None):
+            if sample_dims is None:
+                if not isinstance(sample_dim, int):
+                    raise ValueError("sample_dim must be int, given {}".format(type(sample_dim)))
+                sample_dims = (sample_dim,)
+                raise DeprecationWarning('sample_dim will be renamed to sample_dims in future releases')
+            else:
+                raise ValueError('Both sample_dim and sample_dims are not None.')
         if nodes is None:
             nodes = self._nodes
         log_prob = 0.0
@@ -447,13 +457,13 @@ def _autogen_trace_methods():
         return _re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     for name, obj in _inspect.getmembers(_distributions):
-        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and (obj.has_rsample == True):
+        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and obj.has_rsample:
             f_name = camel_to_snake(name).lower()
-            doc="""Generates a random variable of type torch.distributions.%s""" % name
+            doc = """Generates a random variable of type torch.distributions.%s""" % name
             try:
                 # try python 3 first
                 asp = _inspect.getfullargspec(obj.__init__)
-            except Exception as e:
+            except Exception as e:  # noqa
                 # python 2
                 asp = _inspect.getargspec(obj.__init__)
 

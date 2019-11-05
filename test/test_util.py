@@ -1,7 +1,7 @@
 import torch
 from random import randint, sample
 from torch.autograd import Variable
-from common import TestCase, run_tests
+from .common import TestCase, run_tests
 from probtorch import util
 
 zero = Variable(torch.Tensor([0.0]))

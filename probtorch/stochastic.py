@@ -355,7 +355,9 @@ class Trace(MutableMapping):
         """
         if (sample_dim is not None):
             if sample_dims is None:
-                sample_dims = sample_dim
+                if not isinstance(sample_dim, int):
+                    raise ValueError("sample_dim must be int, given {}".format(type(sample_dim)))
+                sample_dims = (sample_dim,)
                 raise DeprecationWarning('sample_dim will be renamed to sample_dims in future releases')
             else:
                 raise ValueError('Both sample_dim and sample_dims are not None.')

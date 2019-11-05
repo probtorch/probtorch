@@ -3,7 +3,7 @@ from torch.autograd import Variable
 import probtorch
 from torch.distributions import Normal
 from probtorch.util import log_mean_exp
-from common import TestCase, run_tests
+from .common import TestCase, run_tests
 import math
 
 

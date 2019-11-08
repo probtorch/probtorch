@@ -297,6 +297,8 @@ class Trace(MutableMapping):
     def variable(self, Dist, *args, **kwargs):
         """Creates a new RandomVariable node"""
         name = kwargs.pop('name', None)
+        if 'use_pmf' not in kwargs:
+            kwargs['use_pmf'] = True
         value = kwargs.pop('value', None)
         provenance = kwargs.pop('provenance', None)
         if value is None:
@@ -307,7 +309,7 @@ class Trace(MutableMapping):
             if isinstance(value, RandomVariable):
                 value = value.value
         node = RandomVariable(Dist, value, *args, provenance=provenance,
-                              mask=self._mask, use_pmf=True, **kwargs)
+                              mask=self._mask, **kwargs)
         if name is None:
             self.append(node)
         else:

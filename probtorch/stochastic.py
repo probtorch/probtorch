@@ -5,7 +5,7 @@ from enum import Enum
 import re
 import math
 
-__all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
+__all__ = ["Stochastic", "Factor", "RandomVariable", "ImproperRandomVariable", "Trace"]
 
 
 class Provenance(Enum):
@@ -91,6 +91,51 @@ class RandomVariable(Stochastic):
         return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
                                                      repr(self._value))
 
+class ImproperRandomVariable(Stochastic):
+    """Improper random variables wrap a PyTorch Variable to associate a log density.
+
+    Parameters:
+        fn(:obj:`Distribution`): The density function of the variable.
+        value(:obj:`Variable`): The value of the variable.
+        observed(bool): Indicates whether the value was sampled or observed.
+    """
+
+    def __init__(self, fn, value, log_weight=None, provenance=Provenance.SAMPLED, mask=None,
+                 use_pmf=True):
+        self._value = value
+        self._log_prob = fn(value)
+        assert isinstance(provenance, Provenance)
+        self._provenance = provenance
+        self._mask = mask
+
+    @property
+    def value(self):
+        return self._value
+
+    @property
+    def observed(self):
+        return self._provenance == Provenance.OBSERVED
+
+    @property
+    def provenance(self):
+        return self._provenance
+
+    @property
+    def log_prob(self):
+        return self._log_prob
+
+    @property
+    def mask(self):
+        return self._mask
+
+    @property
+    def reparameterized(self):
+        return self._reparameterized
+
+    def __repr__(self):
+        return "%s InproperRandomVariable containing: %s" % (type(self._dist).__name__,
+                                                             repr(self._value))
+
 
 class Factor(Stochastic):
     """A Factor wraps a log probability density or mass without associating a
@@ -170,6 +215,7 @@ class Trace(MutableMapping):
         self._nodes = OrderedDict()
         self._counters = {}
         self._mask = None
+        self.is_normalized=True
 
     def __getitem__(self, name):
         return self._nodes.get(name, None)
@@ -184,6 +230,8 @@ class Trace(MutableMapping):
         if (node.log_prob != node.log_prob).sum() > 0:
             raise ValueError("NaN log prob encountered in node"
                              "with name: " + name)
+        if not isinstance(node, RandomVariable):
+            self.is_normalized = False
         self._nodes[name] = node
 
     def __delitem__(self, name):
@@ -222,7 +270,7 @@ class Trace(MutableMapping):
         """Indexes entries by integer position."""
         return list(self._nodes.values())[pos]
 
-    def append(self, node):
+    def append(self, node, name=None):
         """Appends a node, storing it according to the name attribute. If the
         node does not have a name attribute, then a unique name is generated.
         """
@@ -230,16 +278,17 @@ class Trace(MutableMapping):
             raise TypeError("Argument node must be an instance of"
                             "probtorch.Stochastic")
         # construct a new node name
-        if isinstance(node, RandomVariable):
-            node_name = type(node.dist).__name__.lower()
-        else:
-            node_name = type(node).__name__.lower()
-        while True:
-            node_count = self._counters.get(node_name, 0)
-            name = '%s_%d' % (node_name, node_count)
-            self._counters[node_name] = node_count + 1
-            if name not in self._nodes:
-                break
+        if name is None:
+            if isinstance(node, RandomVariable):
+                node_name = type(node.dist).__name__.lower()
+            else:
+                node_name = type(node).__name__.lower()
+            while True:
+                node_count = self._counters.get(node_name, 0)
+                name = '%s_%d' % (node_name, node_count)
+                self._counters[node_name] = node_count + 1
+                if name not in self._nodes:
+                    break
         self._nodes[name] = node
 
     def extend(self, nodes):

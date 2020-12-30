@@ -5,7 +5,7 @@ from enum import Enum
 import re
 import math
 
-__all__ = ["Stochastic", "Factor", "RandomVariable", "ImproperRandomVariable", "Trace"]
+__all__ = ["Stochastic", "Factor", "RandomVariable", "ImproperRandomVariable", "Trace", "Provenance"]
 
 
 class Provenance(Enum):
@@ -46,14 +46,17 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, provenance=Provenance.SAMPLED, mask=None,
+    def __init__(self, dist, value, log_prob=None, provenance=Provenance.SAMPLED, mask=None,
                  use_pmf=True):
         self._dist = dist
         self._value = value
-        if use_pmf and hasattr(dist, 'log_pmf'):
-            self._log_prob = dist.log_pmf(value)
+        if log_prob is None:
+            if use_pmf and hasattr(dist, 'log_pmf'):
+                self._log_prob = dist.log_pmf(value)
+            else:
+                self._log_prob = dist.log_prob(value)
         else:
-            self._log_prob = dist.log_prob(value)
+            self._log_prob = log_prob
         assert isinstance(provenance, Provenance)
         self._provenance = provenance
         self._mask = mask
@@ -100,10 +103,13 @@ class ImproperRandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, fn, value, log_weight=None, provenance=Provenance.SAMPLED, mask=None,
-                 use_pmf=True):
+    def __init__(self, log_density_fn, value, log_prob=None, provenance=Provenance.SAMPLED, mask=None, use_pmf=True):
+        self.log_density_fn = log_density_fn
         self._value = value
-        self._log_prob = fn(value)
+        if log_prob is None:
+            self._log_prob = self.log_density_fn(value)
+        else:
+            self._log_prob = log_prob
         assert isinstance(provenance, Provenance)
         self._provenance = provenance
         self._mask = mask
@@ -133,8 +139,7 @@ class ImproperRandomVariable(Stochastic):
         return self._reparameterized
 
     def __repr__(self):
-        return "%s InproperRandomVariable containing: %s" % (type(self._dist).__name__,
-                                                             repr(self._value))
+        return "ImproperRandomVariable containing: %s" % (repr(self._value))
 
 
 class Factor(Stochastic):
@@ -409,6 +414,7 @@ class Trace(MutableMapping):
                 if isinstance(node, RandomVariable) and reparameterized and\
                    not node.reparameterized:
                     raise ValueError('All random variables must be sampled by reparameterization.')
+
                 log_p = batch_sum(node.log_prob,
                                   sample_dims,
                                   batch_dim)

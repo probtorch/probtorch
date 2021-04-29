@@ -4,8 +4,14 @@ import abc
 from enum import Enum
 import re
 import math
+import torch
+from functools import partial
+import inspect
+import warnings
+import hashlib
+import base64
 
-__all__ = ["Stochastic", "Factor", "RandomVariable", "ImproperRandomVariable", "Trace", "Provenance"]
+__all__ = ["Stochastic", "Factor", "RandomVariable", "ImproperRandomVariable", "Trace", "Provenance", "Loss"]
 
 
 class Provenance(Enum):
@@ -46,10 +52,12 @@ class RandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, log_prob=None, provenance=Provenance.SAMPLED, mask=None,
+    # TODO: get rid of log_prob initializer - maybe ???
+    def __init__(self, dist, value, provenance=Provenance.SAMPLED, log_prob=None, reparameterized=False, mask=None,
                  use_pmf=True):
         self._dist = dist
         self._value = value
+        self._use_pmf = use_pmf  # needed for rerunning rv node correctly
         if log_prob is None:
             if use_pmf and hasattr(dist, 'log_pmf'):
                 self._log_prob = dist.log_pmf(value)
@@ -59,12 +67,15 @@ class RandomVariable(Stochastic):
             self._log_prob = log_prob
         assert isinstance(provenance, Provenance)
         self._provenance = provenance
+        self._reparameterized = reparameterized
         self._mask = mask
-        self._reparameterized = dist.has_rsample
 
     @property
     def dist(self):
         return self._dist
+
+    def ldf(value):
+        return self._dist.log_prob(value)
 
     @property
     def value(self):
@@ -103,16 +114,27 @@ class ImproperRandomVariable(Stochastic):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, log_density_fn, value, log_prob=None, provenance=Provenance.SAMPLED, mask=None, use_pmf=True):
-        self.log_density_fn = log_density_fn
+    def __init__(self, dens, value, provenance=Provenance.REUSED, mask=None, log_prob=None):
+        self._dens = dens
         self._value = value
         if log_prob is None:
-            self._log_prob = self.log_density_fn(value)
+            self._log_prob = self._dens(value)
         else:
             self._log_prob = log_prob
         assert isinstance(provenance, Provenance)
         self._provenance = provenance
         self._mask = mask
+
+    @property
+    def dens(self):
+        return self._dens
+
+    @property
+    def dens(self):
+        return self._dens
+
+    def ldf(*args, **kwargs):
+        return self._dens.ldf(*args, **kwargs)
 
     @property
     def value(self):
@@ -254,20 +276,51 @@ class Trace(MutableMapping):
 
     def __repr__(self):
         item_reprs = []
+
+        def shape_indicator(shape):
+            return 'x'.join([str(d) for d in shape])
+
+        def grad_indicator(value):
+            indictor_str = ""
+            if hasattr(value, "grad_fn"):
+                indictor_str += "▽"
+            if value.requires_grad:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    if value.grad is not None:
+                        indictor_str += "▲"
+            return indictor_str
+
+        def type_indicator(node):
+            if isinstance(node, RandomVariable):
+                return "RV"
+            elif isinstance(node, ImproperRandomVariable):
+                return "IRV"
+            elif isinstance(node, Loss):
+                return "LOSS"
+            elif isinstance(node, Factor):
+                return "FAC"
+
         for n in self:
             node = self[n]
+            dnodetype = type_indicator(node)
+            ddisttype = ""
             if isinstance(node, RandomVariable):
-                dname = type(node.dist).__name__
-            else:
-                dname = type(node).__name__
+                disttype = "{}-".format(type(node.dist).__name__)
             if isinstance(node, Factor):
-                dtype = node.log_prob.type()
-                dsize = 'x'.join([str(d) for d in node.log_prob.size()])
+                dgrad = grad_indicator(node.log_prob)
+                dvalshape = shape_indicator(node.log_prob.shape)
+                dvaltype = node.log_prob.type
+                dvalhash = hashlib.sha1(node.log_prob.detach().numpy().data.tobytes())
             else:
-                dtype = node.value.type()
-                dsize = 'x'.join([str(d) for d in node.value.size()])
-            val_repr = "[%s of size %s]" % (dtype, dsize)
-            node_repr = "%s(%s)" % (dname, val_repr)
+                dgrad = grad_indicator(node.value)
+                dvalshape = shape_indicator(node.value.shape)
+                dvaltype = node.value.dtype
+                dvalhash = hashlib.sha1(node.value.detach().numpy().data.tobytes())
+            dvalhash = base64.urlsafe_b64encode(dvalhash.digest()[:5]).decode('ascii')
+            type_repr = "{}{}".format(ddisttype, dnodetype)
+            val_repr = "{}{}x{}#{}".format(dgrad, dvalshape, dvaltype, dvalhash)
+            node_repr = "{}[{}]".format(type_repr, val_repr)
             item_reprs.append("%s: %s" % (repr(n), node_repr))
         return "Trace{%s}" % ", ".join(item_reprs)
 
@@ -326,19 +379,43 @@ class Trace(MutableMapping):
         name = kwargs.pop('name', None)
         value = kwargs.pop('value', None)
         provenance = kwargs.pop('provenance', None)
+        sample_shape = kwargs.pop('sample_shape', torch.Size([]))
+        reparameterized = kwargs.pop('reparameterized', False)
+        detach_parameters = kwargs.pop('detach_parameters', False)
+        args, kwargs = get_detached_parameters(*args, **kwargs) if detach_parameters else (args, kwargs)
         dist = Dist(*args, **kwargs)
         if value is None:
-            if dist.has_rsample:
-                value = dist.rsample()
+            if reparameterized:
+                value = dist.rsample(sample_shape)
             else:
-                value = dist.sample()
+                value = dist.sample(sample_shape)
             provenance = Provenance.SAMPLED
         else:
             if not provenance:
                 provenance = Provenance.OBSERVED
-            if isinstance(value, RandomVariable):
+            if isinstance(value, RandomVariable) or isinstance(value, ImproperRandomVariable):
                 value = value.value
-        node = RandomVariable(dist, value, provenance, mask=self._mask)
+        node = RandomVariable(dist, value, provenance, reparameterized=reparameterized, mask=self._mask)
+        if name is None:
+            self.append(node)
+        else:
+            self[name] = node
+        return value
+
+    def improper_variable(self, Dens, *args, **kwargs):
+        """Creates a new RandomVariable node"""
+        name = kwargs.pop('name', None)
+        value = kwargs.pop('value', None)
+        provenance = kwargs.pop('provenance', None)
+        detach_parameters = kwargs.pop('detach_parameters', False)
+        args, kwargs = get_detached_parameters(*args, **kwargs) if detach_parameters else (args, kwargs)
+        dens = Dens(*args, **kwargs)
+        assert value is not None, "Value can not be None"
+        if not provenance:
+            provenance = Provenance.OBSERVED
+        if isinstance(value, RandomVariable) or isinstance(value, ImproperRandomVariable):
+            value = value.value
+        node = ImproperRandomVariable(dens, value, provenance=provenance, mask=self._mask)
         if name is None:
             self.append(node)
         else:
@@ -396,7 +473,7 @@ class Trace(MutableMapping):
                 yield name
 
     def log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
-                  reparameterized=True):
+                  reparameterized=True, elementwise=False):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
@@ -411,17 +488,27 @@ class Trace(MutableMapping):
         for n in nodes:
             if n in self._nodes:
                 node = self._nodes[n]
-                if isinstance(node, RandomVariable) and reparameterized and\
-                   not node.reparameterized:
-                    raise ValueError('All random variables must be sampled by reparameterization.')
+                # I do not understand this check: ask JW
+                # if isinstance(node, RandomVariable) and reparameterized and\
+                #    not node.reparameterized:
+                #     raise ValueError('All random variables must be sampled by reparameterization.')
 
-                log_p = batch_sum(node.log_prob,
-                                  sample_dims,
-                                  batch_dim)
+                if elementwise:
+                    log_p = node.log_prob
+                else:
+                    log_p = batch_sum(node.log_prob,
+                                      sample_dims,
+                                      batch_dim)
+
                 if batch_dim is not None and node.mask is not None:
                     log_p = log_p * node.mask
                 log_prob = log_prob + log_p
         return log_prob
+
+def get_detached_parameters(*args, **kwargs):
+    args = [arg.detach() if isinstance(args, troch.Tensor) else arg for arg in args]
+    kwargs = {k: v.detach() if isinstance(v, troch.Tensor) else v for k, v in kwargs.items}
+    return args, kwargs
 
     def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):
         """Computes log batch marginal probabilities. Returns the log marginal joint

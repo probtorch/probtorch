@@ -41,7 +41,15 @@ class Stochastic(object):
 
 class _RandomVariable(Stochastic):
     """ Private, shared, base class for ImproperRandomVariable and RandomVariable """
-    def __init__(self, value, log_prob, provenance=Provenance.SAMPLED, mask=None, resamplable=True):
+
+    def __init__(
+        self,
+        value,
+        log_prob,
+        provenance=Provenance.SAMPLED,
+        mask=None,
+        resamplable=True,
+    ):
         assert isinstance(provenance, Provenance)
         self._value = value
         self._log_prob = log_prob
@@ -89,8 +97,22 @@ class ImproperRandomVariable(_RandomVariable):
         provenance(:obj:`Provenance`): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, log_density_fn:Callable[[Tensor], Tensor], value:Tensor, provenance:Provenance=Provenance.OBSERVED, mask=None, log_prob=None, resamplable=True):
-        super().__init__(value=value, log_prob=log_density_fn(value) if log_prob is None else log_prob, provenance=provenance, mask=mask, resamplable=resamplable)
+    def __init__(
+        self,
+        log_density_fn: Callable[[Tensor], Tensor],
+        value: Tensor,
+        provenance: Provenance = Provenance.OBSERVED,
+        mask=None,
+        log_prob=None,
+        resamplable=True,
+    ):
+        super().__init__(
+            value=value,
+            log_prob=log_density_fn(value) if log_prob is None else log_prob,
+            provenance=provenance,
+            mask=mask,
+            resamplable=resamplable,
+        )
         self._log_density_fn = log_density_fn
 
     @property
@@ -111,17 +133,33 @@ class RandomVariable(_RandomVariable):
         observed(bool): Indicates whether the value was sampled or observed.
     """
 
-    def __init__(self, dist, value, reparameterized, provenance=Provenance.SAMPLED, mask=None, use_pmf=True, log_prob=None, resamplable=True):
+    def __init__(
+        self,
+        dist,
+        value,
+        reparameterized,
+        provenance=Provenance.SAMPLED,
+        mask=None,
+        use_pmf=True,
+        log_prob=None,
+        resamplable=True,
+    ):
         self._dist = dist
         self._use_pmf = use_pmf
-        self._reparameterized = reparameterized #dist.has_rsample
+        self._reparameterized = reparameterized  # dist.has_rsample
         super().__init__(
             value=value,
             provenance=provenance,
             mask=mask,
             resamplable=resamplable,
-            log_prob=log_prob if log_prob is not None else \
-                (dist.log_pmf(value) if use_pmf and hasattr(dist, 'log_pmf') else dist.log_prob(value)))
+            log_prob=log_prob
+            if log_prob is not None
+            else (
+                dist.log_pmf(value)
+                if use_pmf and hasattr(dist, "log_pmf")
+                else dist.log_prob(value)
+            ),
+        )
 
     @property
     def dist(self):
@@ -132,8 +170,10 @@ class RandomVariable(_RandomVariable):
         return self._reparameterized
 
     def __repr__(self):
-        return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
-                                                     repr(self._value))
+        return "%s RandomVariable containing: %s" % (
+            type(self._dist).__name__,
+            repr(self._value),
+        )
 
 
 class Factor(Stochastic):
@@ -225,8 +265,7 @@ class Trace(MutableMapping):
             raise ValueError("Trace already contains a node with name: " + name)
 
         if (node.log_prob != node.log_prob).sum() > 0:
-            raise ValueError("NaN log prob encountered in node"
-                             "with name: " + name)
+            raise ValueError("NaN log prob encountered in node with name: " + name)
         self._nodes[name] = node
 
     def __delitem__(self, name):
@@ -405,8 +444,7 @@ class Trace(MutableMapping):
         return self._log_joint(sample_dims=sample_dims, batch_dim=batch_dim, nodes=nodes, reparameterized=reparameterized)
 
 
-    def _log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
-                  reparameterized=True, device=None):
+    def _log_joint(self, sample_dims=None, batch_dim=None, nodes=None, reparameterized=True):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
@@ -417,15 +455,10 @@ class Trace(MutableMapping):
         """
         if nodes is None:
             nodes = self._nodes
-        # FIXME: Discuss this fix with JW
+        # FIXME: Discuss this fix with JW. This provides a consistent order to the
+        # nodes, otherwise there is a notable difference in floating point precision.
         nodes = set(nodes)
         log_prob = 0.0
-        # This should be a torch tensor, but we need to select the device
-        # if device is None and len(nodes) == 0:
-        #     device = torch.device('cpu')
-        # elif device is None:
-        #     device = self._nodes[list(nodes)[0]].log_prob.device
-        # log_prob = torch.zeros(1, device=device)
         for n in nodes:
             if n in self._nodes:
                 node = self._nodes[n]

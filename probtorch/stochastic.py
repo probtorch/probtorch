@@ -304,7 +304,7 @@ class Trace(MutableMapping):
         """Indexes entries by integer position."""
         return list(self._nodes.values())[pos]
 
-    def append(self, node, name=None):
+    def append(self, node):
         """Appends a node, storing it according to the name attribute. If the
         node does not have a name attribute, then a unique name is generated.
         """
@@ -312,17 +312,28 @@ class Trace(MutableMapping):
             raise TypeError("Argument node must be an instance of"
                             "probtorch.Stochastic")
         # construct a new node name
-        if name is None:
-            if isinstance(node, RandomVariable):
-                node_name = type(node.dist).__name__.lower()
-            else:
-                node_name = type(node).__name__.lower()
-            while True:
-                node_count = self._counters.get(node_name, 0)
-                name = '%s_%d' % (node_name, node_count)
-                self._counters[node_name] = node_count + 1
-                if name not in self._nodes:
-                    break
+        if isinstance(node, RandomVariable):
+            node_name = type(node.dist).__name__.lower()
+        else:
+            node_name = type(node).__name__.lower()
+        while True:
+            node_count = self._counters.get(node_name, 0)
+            name = '%s_%d' % (node_name, node_count)
+            self._counters[node_name] = node_count + 1
+            if name not in self._nodes:
+                break
+        self._nodes[name] = node
+
+    def _inject(self, node: Stochastic, name: str, silent: bool = False):
+        """ Helper function to capture any inproper mutations of the underlying map.
+        """
+        if not isinstance(node, Stochastic):
+            raise TypeError("Argument node must be an instance of"
+                            "probtorch.Stochastic")
+        if not silent:
+            import warnings
+            warnings.warn('Augmenting the underlying map is not advised!')
+
         self._nodes[name] = node
 
     def extend(self, nodes):

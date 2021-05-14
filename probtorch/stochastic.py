@@ -362,6 +362,7 @@ class Trace(MutableMapping):
     def mask(self, mask):
         self._mask = mask
 
+    # NOTE: Factor should not take kwargs. Check if your passed kwargs!
     def factor(self, log_prob, name=None):
         """Creates a new Factor node"""
         node = Factor(log_prob, mask=self._mask)

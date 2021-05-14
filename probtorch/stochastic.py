@@ -210,8 +210,6 @@ class Trace(MutableMapping):
     """
 
     def __init__(self):
-        # TODO: Python 3 dicts are ordered as of 3.6,
-        # so could we use a normal dict instead?
         self._nodes = OrderedDict()
         self._counters = {}
         self._mask = None

@@ -311,12 +311,14 @@ class Trace(MutableMapping):
                 dgrad = grad_indicator(node.log_prob)
                 dvalshape = shape_indicator(node.log_prob.shape)
                 dvaltype = node.log_prob.type
-                dvalhash = hashlib.sha1(node.log_prob.detach().numpy().data.tobytes())
+                # TODO: Find way to hash without moving stuff to cpu first.
+                dvalhash = hashlib.sha1(node.log_prob.detach().cpu().numpy().data.tobytes())
             else:
                 dgrad = grad_indicator(node.value)
                 dvalshape = shape_indicator(node.value.shape)
                 dvaltype = node.value.dtype
-                dvalhash = hashlib.sha1(node.value.detach().numpy().data.tobytes())
+                # TODO: Find way to hash without moving stuff to cpu first.
+                dvalhash = hashlib.sha1(node.value.detach().cpu().numpy().data.tobytes())
             dvalhash = base64.urlsafe_b64encode(dvalhash.digest()[:5]).decode('ascii')
             type_repr = "{}{}".format(ddisttype, dnodetype)
             val_repr = "{}{}x{}#{}".format(dgrad, dvalshape, dvaltype, dvalhash)

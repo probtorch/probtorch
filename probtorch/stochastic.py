@@ -3,7 +3,6 @@ from collections.abc import MutableMapping
 from probtorch.util import batch_sum, partial_sum, log_mean_exp
 import abc
 from enum import Enum
-import re
 import math
 from typing import Callable
 from torch import Tensor

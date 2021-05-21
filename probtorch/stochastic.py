@@ -509,8 +509,8 @@ class Trace(MutableMapping):
         return log_prob
 
 def get_detached_parameters(*args, **kwargs):
-    args = [arg.detach() if isinstance(args, troch.Tensor) else arg for arg in args]
-    kwargs = {k: v.detach() if isinstance(v, troch.Tensor) else v for k, v in kwargs.items}
+    args = [arg.detach() if isinstance(args, torch.Tensor) else arg for arg in args]
+    kwargs = {k: v.detach() if isinstance(v, torch.Tensor) else v for k, v in kwargs.items()}
     return args, kwargs
 
     def log_batch_marginal(self, sample_dim=None, batch_dim=None, nodes=None, bias=1.0):

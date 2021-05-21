@@ -324,7 +324,7 @@ class Trace(MutableMapping):
         self._nodes[name] = node
 
     def _inject(self, node: Stochastic, name: str, silent: bool = False):
-        """ Helper function to capture any inproper mutations of the underlying map.
+        """ Helper function to capture any improper mutations of the underlying map.
         """
         if not isinstance(node, Stochastic):
             raise TypeError("Argument node must be an instance of"

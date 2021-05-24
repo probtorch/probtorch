@@ -4,6 +4,7 @@ from probtorch.util import batch_sum, partial_sum, log_mean_exp
 import abc
 from enum import Enum
 import math
+import warnings
 from typing import Callable
 from torch import Tensor
 
@@ -330,7 +331,6 @@ class Trace(MutableMapping):
             raise TypeError("Argument node must be an instance of"
                             "probtorch.Stochastic")
         if not silent:
-            import warnings
             warnings.warn('Augmenting the underlying map is not advised!')
 
         self._nodes[name] = node
@@ -371,6 +371,8 @@ class Trace(MutableMapping):
         dist = Dist(*args, **kwargs)
         assert reparameterized is not None, f"reparameterized must be explicitly set for {name}: dist={dist}"
         if value is None:
+            if provenance is not None:
+                warnings.warn(f'provenance given, without a value. Ignoring provenance={provenance}.')
             if self._cond_trace is not None and name in self._cond_trace:
                 value = self._cond_trace[name].value
                 provenance = Provenance.REUSED
@@ -582,8 +584,8 @@ def _autogen_trace_methods():
                 args = args + ', ' + kwargs
 
             env = {'obj': obj, 'torch': _torch}
-            s = ("""def f({0}, name=None, value=None, reparameterized=None, resamplable=True, sample_shape=None):
-                    return self.variable(obj, {1}, name=name, value=value, reparameterized=reparameterized, resamplable=resamplable, sample_shape=sample_shape)""")
+            s = ("""def f({0}, name=None, value=None, reparameterized=None, resamplable=True, sample_shape=None, provenance=None):
+                    return self.variable(obj, {1}, name=name, value=value, reparameterized=reparameterized, resamplable=resamplable, sample_shape=sample_shape, provenance=provenance)""")
             input_args = ', '.join(asp.args[1:])
             exec(s.format(args, input_args), env)
             f = env['f']

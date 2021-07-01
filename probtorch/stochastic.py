@@ -380,8 +380,6 @@ class Trace(MutableMapping):
                 def get_value(**kwargs):
                     return dist.rsample(**kwargs) if reparameterized else dist.sample(**kwargs)
 
-                # FIXME: I think branches can be unified, but I also think I ran into a
-                #        difference between these two functions in the past.
                 value = get_value(sample_shape=sample_shape) \
                     if sample_shape is not None else get_value()
 
@@ -467,17 +465,14 @@ class Trace(MutableMapping):
         """
         if nodes is None:
             nodes = self._nodes
-        # FIXME: Discuss this fix with JW. This provides a consistent order to the
-        # nodes, otherwise there is a notable difference in floating point precision.
+
+        # This provides a consistent order to the nodes, otherwise there is a
+        # notable difference in floating point precision.
         nodes = set(nodes)
         log_prob = 0.0
         for n in nodes:
             if n in self._nodes:
                 node = self._nodes[n]
-                # FIXME: why is this here?
-                # if isinstance(node, RandomVariable) and reparameterized and\
-                #    not node.reparameterized:
-                #     raise ValueError('All random variables must be sampled by reparameterization.')
                 log_p = batch_sum(node.log_prob,
                                   sample_dims,
                                   batch_dim)

@@ -92,7 +92,7 @@ setup(
     description=DESCRIPTION,
     long_description=long_description,
     url=URL,
-    packages=find_packages(exclude=('tests',)),
+    packages=find_packages(exclude=('test',)),
     install_requires=REQUIRED,
     include_package_data=True,
     license='MIT',

@@ -1,11 +1,14 @@
-from collections import OrderedDict, MutableMapping
-from .util import batch_sum, partial_sum, log_mean_exp
+from collections import OrderedDict
+from collections.abc import MutableMapping
+from probtorch.util import batch_sum, partial_sum, log_mean_exp
 import abc
 from enum import Enum
-import re
 import math
+import warnings
+from typing import Callable
+from torch import Tensor
 
-__all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
+__all__ = ["Stochastic", "Factor", "RandomVariable", "ImproperRandomVariable", "Trace"]
 
 
 class Provenance(Enum):
@@ -36,32 +39,23 @@ class Stochastic(object):
         """Holds a mask for batch items"""
 
 
-class RandomVariable(Stochastic):
-    """Random variables wrap a PyTorch Variable to associate a distribution
-    and a log probability density or mass.
+class _RandomVariable(Stochastic):
+    """ Private, shared, base class for ImproperRandomVariable and RandomVariable """
 
-    Parameters:
-        dist(:obj:`Distribution`): The distribution of the variable.
-        value(:obj:`Variable`): The value of the variable.
-        observed(bool): Indicates whether the value was sampled or observed.
-    """
-
-    def __init__(self, dist, value, provenance=Provenance.SAMPLED, mask=None,
-                 use_pmf=True):
-        self._dist = dist
-        self._value = value
-        if use_pmf and hasattr(dist, 'log_pmf'):
-            self._log_prob = dist.log_pmf(value)
-        else:
-            self._log_prob = dist.log_prob(value)
+    def __init__(
+        self,
+        value,
+        log_prob,
+        provenance=Provenance.SAMPLED,
+        mask=None,
+        resamplable=True,
+    ):
         assert isinstance(provenance, Provenance)
+        self._value = value
+        self._log_prob = log_prob
         self._provenance = provenance
         self._mask = mask
-        self._reparameterized = dist.has_rsample
-
-    @property
-    def dist(self):
-        return self._dist
+        self._resamplable = resamplable
 
     @property
     def value(self):
@@ -84,12 +78,102 @@ class RandomVariable(Stochastic):
         return self._mask
 
     @property
+    def resamplable(self):
+        """
+        Flag to indicate if this random variable _should_ be resampled.
+
+        NOTE: this is not used within any of the probtorch infrastructure and is
+        only respected by combinators.resamplers
+        """
+        return self._resamplable
+
+
+class ImproperRandomVariable(_RandomVariable):
+    """Improper random variables wrap a PyTorch tensor with an associated log density.
+
+    Parameters:
+        log_density_fn(:obj:`Callable[[Tensor], Tensor]`): The density function of the variable.
+        value(:obj:`Tensor`): The value of the variable.
+        provenance(:obj:`Provenance`): Indicates whether the value was sampled or observed.
+    """
+
+    def __init__(
+        self,
+        log_density_fn: Callable[[Tensor], Tensor],
+        value: Tensor,
+        provenance: Provenance = Provenance.OBSERVED,
+        mask=None,
+        log_prob=None,
+        resamplable=True,
+    ):
+        super().__init__(
+            value=value,
+            log_prob=log_density_fn(value) if log_prob is None else log_prob,
+            provenance=provenance,
+            mask=mask,
+            resamplable=resamplable,
+        )
+        self._log_density_fn = log_density_fn
+
+    @property
+    def log_density_fn(self):
+        return self._log_density_fn
+
+    def __repr__(self):
+        return f"ImproperRandomVariable containing: {repr(self._value)}"
+
+
+class RandomVariable(_RandomVariable):
+    """Random variables wrap a PyTorch Variable to associate a distribution
+    and a log probability density or mass.
+
+    Parameters:
+        dist(:obj:`Distribution`): The distribution of the variable.
+        value(:obj:`Variable`): The value of the variable.
+        observed(bool): Indicates whether the value was sampled or observed.
+    """
+
+    def __init__(
+        self,
+        dist,
+        value,
+        reparameterized,
+        provenance=Provenance.SAMPLED,
+        mask=None,
+        use_pmf=True,
+        log_prob=None,
+        resamplable=True,
+    ):
+        self._dist = dist
+        self._use_pmf = use_pmf
+        self._reparameterized = reparameterized  # dist.has_rsample
+        super().__init__(
+            value=value,
+            provenance=provenance,
+            mask=mask,
+            resamplable=resamplable,
+            log_prob=log_prob
+            if log_prob is not None
+            else (
+                dist.log_pmf(value)
+                if use_pmf and hasattr(dist, "log_pmf")
+                else dist.log_prob(value)
+            ),
+        )
+
+    @property
+    def dist(self):
+        return self._dist
+
+    @property
     def reparameterized(self):
         return self._reparameterized
 
     def __repr__(self):
-        return "%s RandomVariable containing: %s" % (type(self._dist).__name__,
-                                                     repr(self._value))
+        return "%s RandomVariable containing: %s" % (
+            type(self._dist).__name__,
+            repr(self._value),
+        )
 
 
 class Factor(Stochastic):
@@ -164,12 +248,11 @@ class Trace(MutableMapping):
     reassigned.
     """
 
-    def __init__(self):
-        # TODO: Python 3 dicts are ordered as of 3.6,
-        # so could we use a normal dict instead?
+    def __init__(self, cond_trace=None):
         self._nodes = OrderedDict()
         self._counters = {}
         self._mask = None
+        self._cond_trace = cond_trace
 
     def __getitem__(self, name):
         return self._nodes.get(name, None)
@@ -179,11 +262,10 @@ class Trace(MutableMapping):
             raise TypeError("Argument node must be an instance of "
                             "probtorch.Stochastic")
         if name in self._nodes:
-            raise ValueError("Trace already contains a node with "
-                             "name: " + name)
+            raise ValueError("Trace already contains a node with name: " + name)
+
         if (node.log_prob != node.log_prob).sum() > 0:
-            raise ValueError("NaN log prob encountered in node"
-                             "with name: " + name)
+            raise ValueError("NaN log prob encountered in node with name: " + name)
         self._nodes[name] = node
 
     def __delitem__(self, name):
@@ -242,6 +324,17 @@ class Trace(MutableMapping):
                 break
         self._nodes[name] = node
 
+    def _inject(self, node: Stochastic, name: str, silent: bool = False):
+        """ Helper function to capture any improper mutations of the underlying map.
+        """
+        if not isinstance(node, Stochastic):
+            raise TypeError("Argument node must be an instance of"
+                            "probtorch.Stochastic")
+        if not silent:
+            warnings.warn('Augmenting the underlying map is not advised!')
+
+        self._nodes[name] = node
+
     def extend(self, nodes):
         """Appends multiple nodes"""
         for node in nodes:
@@ -272,19 +365,31 @@ class Trace(MutableMapping):
         name = kwargs.pop('name', None)
         value = kwargs.pop('value', None)
         provenance = kwargs.pop('provenance', None)
+        reparameterized = kwargs.pop('reparameterized', None)
+        resamplable = kwargs.pop('resamplable', True)
+        sample_shape = kwargs.pop('sample_shape', None)
         dist = Dist(*args, **kwargs)
+        assert reparameterized is not None, f"reparameterized must be explicitly set for {name}: dist={dist}"
         if value is None:
-            if dist.has_rsample:
-                value = dist.rsample()
+            if provenance is not None:
+                warnings.warn(f'provenance given, without a value. Ignoring provenance={provenance}.')
+            if self._cond_trace is not None and name in self._cond_trace:
+                value = self._cond_trace[name].value
+                provenance = Provenance.REUSED
             else:
-                value = dist.sample()
-            provenance = Provenance.SAMPLED
+                def get_value(**kwargs):
+                    return dist.rsample(**kwargs) if reparameterized else dist.sample(**kwargs)
+
+                value = get_value(sample_shape=sample_shape) \
+                    if sample_shape is not None else get_value()
+
+                provenance = Provenance.SAMPLED
         else:
             if not provenance:
                 provenance = Provenance.OBSERVED
             if isinstance(value, RandomVariable):
                 value = value.value
-        node = RandomVariable(dist, value, provenance, mask=self._mask)
+        node = RandomVariable(dist, value, reparameterized, provenance=provenance, resamplable=resamplable, mask=self._mask)
         if name is None:
             self.append(node)
         else:
@@ -341,8 +446,15 @@ class Trace(MutableMapping):
             if not isinstance(node, RandomVariable) or node.observed:
                 yield name
 
-    def log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
-                  reparameterized=True):
+    def log_joint(self, sample_dims=None, batch_dim=None, nodes=None, reparameterized=True):
+        """ probtorch.utils.partial_sum expects a specific order """
+        if (isinstance(sample_dims, int) and isinstance(batch_dim, int)) and sample_dims > batch_dim:
+            raise RuntimeError("don't run into probtorch.utils L89 condition")
+
+        return self._log_joint(sample_dims=sample_dims, batch_dim=batch_dim, nodes=nodes, reparameterized=reparameterized)
+
+
+    def _log_joint(self, sample_dims=None, batch_dim=None, nodes=None, reparameterized=True):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:
@@ -353,6 +465,10 @@ class Trace(MutableMapping):
         """
         if nodes is None:
             nodes = self._nodes
+
+        # This provides a consistent order to the nodes, otherwise there is a
+        # notable difference in floating point precision.
+        nodes = set(nodes)
         log_prob = 0.0
         for n in nodes:
             if n in self._nodes:
@@ -463,8 +579,8 @@ def _autogen_trace_methods():
                 args = args + ', ' + kwargs
 
             env = {'obj': obj, 'torch': _torch}
-            s = ("""def f({0}, name=None, value=None):
-                    return self.variable(obj, {1}, name=name, value=value)""")
+            s = ("""def f({0}, name=None, value=None, reparameterized=None, resamplable=True, sample_shape=None, provenance=None):
+                    return self.variable(obj, {1}, name=name, value=value, reparameterized=reparameterized, resamplable=resamplable, sample_shape=sample_shape, provenance=provenance)""")
             input_args = ', '.join(asp.args[1:])
             exec(s.format(args, input_args), env)
             f = env['f']

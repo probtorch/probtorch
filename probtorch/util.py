@@ -7,6 +7,7 @@ from functools import wraps
 
 __all__ = ['broadcast_size',
            'expanded_size',
+           'expand_inputs',
            'batch_sum',
            'partial_sum',
            'log_sum_exp',

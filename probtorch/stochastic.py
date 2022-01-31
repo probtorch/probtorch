@@ -382,9 +382,6 @@ class Trace(MutableMapping):
         for n in nodes:
             if n in self._nodes:
                 node = self._nodes[n]
-                if isinstance(node, RandomVariable) and reparameterized and\
-                   not node.reparameterized:
-                    raise ValueError('All random variables must be sampled by reparameterization.')
                 log_p = batch_sum(node.log_prob,
                                   sample_dims,
                                   batch_dim)
@@ -472,7 +469,7 @@ def _autogen_trace_methods():
         return _re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     for name, obj in _inspect.getmembers(_distributions):
-        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution) and (obj.has_rsample == True):
+        if hasattr(obj, "__bases__") and issubclass(obj, _distributions.Distribution):
             f_name = camel_to_snake(name).lower()
             doc="""Generates a random variable of type torch.distributions.%s""" % name
             try:

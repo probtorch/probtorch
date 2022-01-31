@@ -443,6 +443,49 @@ class Trace(MutableMapping):
         return self.log_joint(sample_dims=sample_dims, batch_dim=batch_dim,
                               nodes=list(self.conditioned()))
 
+class NestedTrace(Trace):
+    """A Trace for performing nested importance sampling. Non-observed variable
+    entries can have their values supplied by a proposal trace, in which case
+    they receive the Provenance REUSED and their prior/proposal ratio enters the
+    the importance weight.
+    """
+    def __init__(self, q=None):
+        super().__init__()
+        self._q = q if q else Trace()
+
+    def variable(self, Dist, *args, **kwargs):
+        name = kwargs.get('name', None)
+        if name is not None and name in self._q:
+            provenance = kwargs.pop('provenance', None)
+            assert provenance is not Provenance.OBSERVED
+            assert isinstance(self._q[name], RandomVariable)
+
+            kwargs['value'] = self._q[name].value
+            if self._q[name].provenance is Provenance.OBSERVED:
+                kwargs['provenance'] = Provenance.OBSERVED
+            else:
+                kwargs['provenance'] = Provenance.REUSED
+
+        return super().variable(Dist, *args, **kwargs)
+
+    def log_proper_weight(self, sample_dims=None, batch_dim=None):
+        log_weight = self._q.log_proper_weight(sample_dims, batch_dim)
+
+        # Calculate the log likelihood ratio between target and proposal
+        log_likelihoods = self.log_joint(sample_dims, batch_dim,
+                                         self.conditioned()) -\
+                          self._q.log_joint(sample_dims, batch_dim,
+                                            self._q.conditioned())
+
+        # Calculate the set of reused variables
+        reused = {k for k in self if isinstance(self[k], RandomVariable) and
+                  self[k].provenance == Provenance.REUSED}
+        # Calculate the log prior ratio for reused variables
+        log_priors = self.log_joint(sample_dims, batch_dim, reused) -\
+                     self._q.log_joint(sample_dims, batch_dim, reused)
+
+        return log_likelihoods + log_priors + log_weight
+
 def _autogen_trace_methods():
     import torch as _torch
     from torch import distributions as _distributions

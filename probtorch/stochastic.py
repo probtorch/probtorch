@@ -361,8 +361,7 @@ class Trace(MutableMapping):
             if not isinstance(node, RandomVariable) or node.observed:
                 yield name
 
-    def log_joint(self, sample_dims=None, batch_dim=None, nodes=None,
-                  reparameterized=True):
+    def log_joint(self, sample_dims=None, batch_dim=None, nodes=None):
         """Returns the log joint probability, optionally for a subset of nodes.
 
         Arguments:

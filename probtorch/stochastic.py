@@ -65,7 +65,6 @@ class RandomVariable(Stochastic):
         assert isinstance(provenance, Provenance)
         self._provenance = provenance
         self._mask = mask
-        self._reparameterized = dist.has_rsample
         self._dist_args = dist_args
         self._dist_kwargs = dist_kwargs
 
@@ -96,10 +95,6 @@ class RandomVariable(Stochastic):
     @property
     def mask(self):
         return self._mask
-
-    @property
-    def reparameterized(self):
-        return self._reparameterized
 
     @property
     def dist_args(self):

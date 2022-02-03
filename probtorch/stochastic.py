@@ -5,7 +5,7 @@ from enum import Enum
 import re
 import math
 
-__all__ = ["Stochastic", "Factor", "RandomVariable", "Trace"]
+__all__ = ["Stochastic", "Factor", "RandomVariable", "Trace", "NestedTrace"]
 
 
 class Provenance(Enum):

@@ -439,6 +439,9 @@ class Trace(MutableMapping):
         log_pw_joints = log_mean_exp(log_pw_joints, 1).transpose(0, batch_dim)
         return log_pw_joints, log_marginals, log_prod_marginals
 
+    def log_proper_weight(self, sample_dims=None, batch_dim=None):
+        return self.log_joint(sample_dims=sample_dims, batch_dim=batch_dim,
+                              nodes=list(self.conditioned()))
 
 def _autogen_trace_methods():
     import torch as _torch
